@@ -462,7 +462,7 @@ class Enviopack
             if ($method === 'GET') {
                 $response = wp_remote_get($url . '?' . http_build_query($params));
             } else {
-                $url .= '?access_token=' . $params['access_token'];
+                $url .= '?access_token=' . (isset($params['access_token']) ? $params['access_token'] : '');
                 unset($params['access_token']);
                 $args = array(
                     'headers' => $headers,
