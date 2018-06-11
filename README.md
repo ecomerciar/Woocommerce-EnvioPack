@@ -1,14 +1,23 @@
 === Woocommerce Enviopack Envios ===
 
 Contributors: ecomerciar
+
 Donate link: http://ecomerciar.com/
+
 Tags: enviopack, shipping, woocommerce, argentina, envios
+
 Requires at least: 4.6
+
 Tested up to: 4.9.6
+
 Requires PHP: 5.6
+
 Stable tag: 1.0.1
+
 Language: Spanish
+
 License: GPLv2
+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
