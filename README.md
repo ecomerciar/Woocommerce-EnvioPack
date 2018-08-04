@@ -43,4 +43,14 @@ Suma envios a traves de Enviopack a tu tienda de WooCommerce
 = 1.0 =
 * Commit inicial
 
+== Screenshots ==
+
+Checkout:  
+  
+![Checkout](https://github.com/ecomerciar/Woocommerce-EnvioPack/blob/screenshots/Checkout.jpg)
+
+Settings:  
+  
+![Settings](https://github.com/ecomerciar/Woocommerce-EnvioPack/blob/screenshots/settings.JPG)
+
 Si necesitas ayuda podes contactarnos a traves de nuestra web de [Ecomerciar](http://ecomerciar.com/ "Ecomerciar").
