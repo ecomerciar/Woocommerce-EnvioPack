@@ -141,7 +141,6 @@ class Enviopack
         if (!$province || !$cp || !$weight || !$packages) {
             return false;
         }
-        $courier = 'urbano';
         $response = $this->call_api('GET', '/cotizar/precio/a-sucursal', array('access_token' => $this->get_access_token(), 'provincia' => $province, 'codigo_postal' => $cp, 'peso' => $weight, 'paquetes' => $packages, 'correo' => $courier));
         if (is_wp_error($response)) {
             $this->logger->error('Enviopack -> WP Error al obtener precio sucursales: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
