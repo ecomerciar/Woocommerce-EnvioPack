@@ -209,8 +209,20 @@ class Helper
         } else {
             $address = $this->order->get_billing_address_1();
         }
+        
         $address_array = explode(" ", $address);
-        return array_shift($address_array);
+        $address = '';
+        foreach ($address_array as $key => $value_of_array) {
+          if($key === 0) {
+              $address .= $value_of_array;
+          } else {
+              if (is_numeric($value_of_array)) {
+                  break;
+              }
+              $address .= ' ' . $value_of_array;
+          }
+        }
+        return $address;
     }
 
     public function get_province_id()
@@ -251,6 +263,9 @@ class Helper
     private function get_new_product($product_id)
     {
         $product = wc_get_product($product_id);
+        if( ! $product ) {
+          return false;
+        }
         if (empty($product->get_height()) || empty($product->get_length()) || empty($product->get_width()) || !$product->has_weight()) {
             return false;
         }
@@ -318,10 +333,14 @@ class Helper
         } else {
             $address = $this->order->get_billing_address_1();
         }
-        $address_array = explode(" ", $address);
-        $number = array_pop($array_direccion);
-        if (!is_numeric($number)) {
-            $number = '';
+
+        $number = '';
+        $address_array = array_reverse(explode(" ", $address));
+        foreach ($address_array as $value_of_array) {
+          if (is_numeric($value_of_array)) {
+              $number = $value_of_array;
+              break;
+          }
         }
 
         if (!$number) {

@@ -22,9 +22,10 @@ add_action('wp_ajax_get_offices', 'Ecomerciar\Enviopack\Utils\get_offices');
 add_action('wp_ajax_nopriv_get_offices', 'Ecomerciar\Enviopack\Utils\get_offices');
 add_action('wp_ajax_set_office', 'Ecomerciar\Enviopack\Utils\set_office');
 add_action('wp_ajax_nopriv_set_office', 'Ecomerciar\Enviopack\Utils\set_office');
+add_filter('woocommerce_cart_shipping_method_full_label', 'Ecomerciar\Enviopack\Utils\enviopack_add_free_shipping_label', 10, 2);
 
 // --- Orders
-add_action('woocommerce_new_order', 'Ecomerciar\Enviopack\Utils\create_shipment');
+// add_action('woocommerce_new_order', 'Ecomerciar\Enviopack\Utils\create_shipment');
 add_action('woocommerce_order_status_completed', 'Ecomerciar\Enviopack\Utils\confirm_shipment');
 add_action('add_meta_boxes', 'Ecomerciar\Enviopack\Utils\add_box');
 add_action('woocommerce_process_shop_order_meta', 'Ecomerciar\Enviopack\Utils\save_box');

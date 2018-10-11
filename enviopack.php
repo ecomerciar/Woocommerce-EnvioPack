@@ -90,6 +90,13 @@ class Enviopack
         $shipment_info = unserialize($order->get_meta('enviopack_shipping_info', true));
         $helper = new Helper($order);
 
+        $products = $helper->get_items_from_order();
+
+        if( ! $products ) {
+          $this->logger->error('Enviopack -> Error al buscar productos de la orden', unserialize(LOGGER_CONTEXT));
+          return false;
+        }
+
         $params = array(
             'access_token' => $this->get_access_token(),
             'pedido' => $shipment['id'],
@@ -97,7 +104,7 @@ class Enviopack
             'destinatario' => $shipment['nombre'] . ' ' . $shipment['apellido'],
             'observaciones' => $helper->get_comments(),
             'confirmado' => true,
-            'paquetes' => $helper->get_items_from_order(),
+            'paquetes' => $products,
             'despacho' => 'D',
             'modalidad' => $shipment_info['type'],
             'servicio' => $shipment_info['service']
@@ -113,7 +120,7 @@ class Enviopack
             $params['depto'] = '';
             $params['referencia_domicilio'] = '';
             $params['codigo_postal'] = $helper->get_postal_code();
-            $params['provincia'] = $shipment['id_provincia'];
+            $params['provincia'] = $shipment['provincia'];
             $params['localidad'] = $shipment['localidad'];
         } else {
             $params['sucursal'] = $shipment_info['office'];
@@ -131,23 +138,24 @@ class Enviopack
             $this->logger->error('Enviopack -> Crear envio - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
             $this->logger->error('Enviopack -> Crear envio - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
-            $this->logger->error('Enviopack -> Crear envio - Data enviada: ' . wc_print_r($params, true), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Crear envio - Data enviada: ' . wc_print_r(json_encode($params), true), unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
 
-    public function get_price_to_office($province = '', $cp = '', $weight = 0, $packages = '', $courier = '')
+    public function get_price_to_office($province = '', $cp = '', $weight = 0, $packages = '', $order_subtotal = 0)
     {
         if (!$province || !$cp || !$weight || !$packages) {
             return false;
         }
-        $courier = 'urbano';
-        $response = $this->call_api('GET', '/cotizar/precio/a-sucursal', array('access_token' => $this->get_access_token(), 'provincia' => $province, 'codigo_postal' => $cp, 'peso' => $weight, 'paquetes' => $packages, 'correo' => $courier));
+        $response = $this->call_api('GET', '/cotizar/precio/a-sucursal', array('access_token' => $this->get_access_token(), 'provincia' => $province, 'codigo_postal' => $cp, 'peso' => $weight, 'paquetes' => $packages, 'monto_pedido' => $order_subtotal, 'plataforma' => 'woocommerce'));
+        
         if (is_wp_error($response)) {
             $this->logger->error('Enviopack -> WP Error al obtener precio sucursales: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
             return false;
         }
         if ($response['response']['code'] === 200) {
+            $this->logger->debug('Enviopack -> Access Token: ' . print_r($this->get_access_token(), true ), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
             $new_offices = array();
             foreach ($response as $office) {
@@ -191,12 +199,153 @@ class Enviopack
         }
     }
 
-    public function get_price_to_home($province = '', $cp = '', $weight = 0, $packages = '', $courier = '')
+    public function get_packages()
+    {
+        $response = $this->call_api('GET', '/tipos-de-paquetes', array('access_token' => $this->get_access_token()));
+        if (is_wp_error($response)) {
+            $this->logger->error('Enviopack -> WP Error al obtener tipos de paquetes: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+        if ($response['response']['code'] === 200) {
+            $response = json_decode($response['body'], true);
+            /* $new_packages = array();
+            foreach ($response as $package_object) {
+                $new_package = array();
+                $new_package['id'] = $package_object['id'];
+                $new_package['nombre'] = $package_object['nombre'];
+                $new_package['price'] = $package_object['valor'];
+                switch ($package_object['servicio']) {
+                    case 'N':
+                    default:
+                        $new_package['service_name'] = 'estándar';
+                        break;
+                    case 'P':
+                        $new_package['service_name'] = 'prioritario';
+                        break;
+                    case 'X':
+                        $new_package['service_name'] = 'express';
+                        break;
+                    case 'R':
+                        $new_package['service_name'] = 'devolución';
+                        break;
+
+                }
+                $new_packages[] = $new_package;
+            }
+            usort($new_packages, function ($a, $b) {
+                return $a['shipping_time'] > $b['shipping_time'];
+            }); */
+            return $response;
+        } else {
+            $this->logger->error('Enviopack -> Tipo de Paquetes - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
+            $response = json_decode($response['body'], true);
+            $this->logger->error('Enviopack -> Tipo de Paquetes - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+    }
+
+    public function get_default_package()
+    {
+        $response = $this->call_api('GET', '/tipos-de-paquetes/default', array('access_token' => $this->get_access_token()));
+        if (is_wp_error($response)) {
+            $this->logger->error('Enviopack -> WP Error al obtener precio domicilio: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+        if ($response['response']['code'] === 200) {
+            $response = json_decode($response['body'], true);
+            $new_homes = array();
+            foreach ($response as $home) {
+                $new_home = array();
+                $new_home['service'] = $home['servicio'];
+                $new_home['shipping_time'] = $home['horas_entrega'];
+                $new_home['price'] = $home['valor'];
+                switch ($home['servicio']) {
+                    case 'N':
+                    default:
+                        $new_home['service_name'] = 'estándar';
+                        break;
+                    case 'P':
+                        $new_home['service_name'] = 'prioritario';
+                        break;
+                    case 'X':
+                        $new_home['service_name'] = 'express';
+                        break;
+                    case 'R':
+                        $new_home['service_name'] = 'devolución';
+                        break;
+
+                }
+                $new_homes[] = $new_home;
+            }
+            usort($new_homes, function ($a, $b) {
+                return $a['shipping_time'] > $b['shipping_time'];
+            });
+            return $new_homes;
+        } else {
+            $this->logger->error('Enviopack -> Precio domicilio - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
+            $response = json_decode($response['body'], true);
+            $this->logger->error('Enviopack -> Precio domicilio - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+    }
+
+    public function get_package($package = '')
+    {
+        if (!$package) {
+            return false;
+        }
+
+        $package = (string) $package;
+
+        $response = $this->call_api('GET', '/tipos-de-paquetes/' . $package, array('access_token' => $this->get_access_token()));
+        if (is_wp_error($response)) {
+            $this->logger->error('Enviopack -> WP Error al obtener tipos de paquetes: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+        if ($response['response']['code'] === 200) {
+            $response = json_decode($response['body'], true);
+            $new_packages = array();
+            foreach ($response as $package_object) {
+                $new_package = array();
+                $new_package['service'] = $package_object['servicio'];
+                $new_package['shipping_time'] = $package_object['horas_entrega'];
+                $new_package['price'] = $package_object['valor'];
+                switch ($package_object['servicio']) {
+                    case 'N':
+                    default:
+                        $new_package['service_name'] = 'estándar';
+                        break;
+                    case 'P':
+                        $new_package['service_name'] = 'prioritario';
+                        break;
+                    case 'X':
+                        $new_package['service_name'] = 'express';
+                        break;
+                    case 'R':
+                        $new_package['service_name'] = 'devolución';
+                        break;
+
+                }
+                $new_packages[] = $new_package;
+            }
+            usort($new_packages, function ($a, $b) {
+                return $a['shipping_time'] > $b['shipping_time'];
+            });
+            return $new_packages;
+        } else {
+            $this->logger->error('Enviopack -> Tipo de Paquete - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
+            $response = json_decode($response['body'], true);
+            $this->logger->error('Enviopack -> Tipo de Paquete - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+    }
+
+    public function get_price_to_home($province = '', $cp = '', $weight = 0, $packages = '', $order_subtotal = 0)
     {
         if (!$province || !$cp || !$weight || !$packages) {
             return false;
         }
-        $response = $this->call_api('GET', '/cotizar/precio/a-domicilio', array('access_token' => $this->get_access_token(), 'provincia' => $province, 'codigo_postal' => $cp, 'peso' => $weight, 'paquetes' => $packages, 'correo' => $courier));
+        $response = $this->call_api('GET', '/cotizar/precio/a-domicilio', array('access_token' => $this->get_access_token(), 'provincia' => $province, 'codigo_postal' => $cp, 'peso' => $weight, 'paquetes' => $packages, 'monto_pedido' => $order_subtotal, 'plataforma' => 'woocommerce'));
         if (is_wp_error($response)) {
             $this->logger->error('Enviopack -> WP Error al obtener precio domicilio: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
             return false;
@@ -248,6 +397,12 @@ class Enviopack
         $province_id = $helper->get_province_id();
         $cp = $helper->get_postal_code();
         $products = $helper->get_items_from_order();
+
+        if( ! $products ) {
+            $this->logger->error('Enviopack -> Error buscando productos para el vendedor', unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+
         $weight = 0;
         foreach ($products as $product) {
             $weight += $product['peso'];
@@ -310,6 +465,7 @@ class Enviopack
                 unset($val['localidad']);
                 return $val;
             }, $response);
+            $this->logger->debug('Enviopack -> Sucursales - Respuesta Sucursales: ' . (isset($response) ? print_r($response, true) : ''), unserialize(LOGGER_CONTEXT));
             return $response;
         } else {
             $this->logger->error('Enviopack -> Sucursales - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
@@ -482,9 +638,11 @@ class Enviopack
 
             // Bad call - Maybe invalid Access token?
             if ($response['response']['code'] === 401) {
+              $this->logger->error('Enviopack -> Error 401 Access Token: ' . $params['access_token'], unserialize(LOGGER_CONTEXT));
                 $this->set_access_token();
                 if (isset($params['access_token'])) {
                     $params['access_token'] = $this->get_access_token();
+                    $this->logger->error('Enviopack -> Error 401 Access Token: ' . $params['access_token'], unserialize(LOGGER_CONTEXT));
                 }
             } else {
             // Good call - return data

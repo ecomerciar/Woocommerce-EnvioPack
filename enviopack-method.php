@@ -104,10 +104,14 @@ function enviopack_init()
                 if (empty($province)) {
                     $province = WC()->customer->get_billing_state();
                 }
+                $order_subtotal = WC()->cart->get_subtotal();
+                if(!empty($order_subtotal)) {
+                    $order_subtotal = number_format($order_subtotal, 2, '.', '');
+                }
 
                 $ep = new Enviopack;
 
-                $prices = $ep->get_price_to_home($province, $cp, $products['shipping_info']['total_weight'], $products['shipping_info']['products_details_1']);
+                $prices = $ep->get_price_to_home($province, $cp, $products['shipping_info']['total_weight'], $products['shipping_info']['products_details_1'], $order_subtotal);
                 if ($prices) {
                     foreach ($prices as $price) {
                         $this->addRate(array('id' => 'D ' . $price['service'], 'label' => 'a domicilio ' . $price['service_name'] . ' (' . $price['shipping_time'] . ' Hrs)', 'price' => $price['price']));
