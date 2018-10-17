@@ -60,7 +60,7 @@ class Enviopack
             'telefono' => $customer['phone'],
             'monto' => $order->get_total(),
             'fecha_alta' => $now->format(DateTime::ISO8601),
-            'pagado' => false,
+            'pagado' => true,
             'provincia' => $province_id,
             'localidad' => $zone_name
         );
@@ -75,7 +75,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Crear pedido - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Crear pedido - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Crear pedido - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -92,9 +92,9 @@ class Enviopack
 
         $products = $helper->get_items_from_order();
 
-        if( ! $products ) {
-          $this->logger->error('Enviopack -> Error al buscar productos de la orden', unserialize(LOGGER_CONTEXT));
-          return false;
+        if (!$products) {
+            $this->logger->error('Enviopack -> Error al buscar productos de la orden', unserialize(LOGGER_CONTEXT));
+            return false;
         }
 
         $params = array(
@@ -103,7 +103,7 @@ class Enviopack
             'direccion_envio' => intval(get_option('enviopack_address_id')),
             'destinatario' => $shipment['nombre'] . ' ' . $shipment['apellido'],
             'observaciones' => $helper->get_comments(),
-            'confirmado' => true,
+            'confirmado' => false,
             'paquetes' => $products,
             'despacho' => 'D',
             'modalidad' => $shipment_info['type'],
@@ -113,7 +113,7 @@ class Enviopack
         $params['paquetes'] = array_values($params['paquetes']);
 
         if ($shipment_info['type'] === 'D') {
-            $params['correo'] = $courier_id;
+            $params['correo'] = ((int)$courier_id === -1 ? '' : $courier_id);
             $params['calle'] = $helper->get_street();
             $params['numero'] = $helper->get_street_number();
             $params['piso'] = '';
@@ -137,7 +137,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Crear envio - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Crear envio - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Crear envio - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             $this->logger->error('Enviopack -> Crear envio - Data enviada: ' . wc_print_r(json_encode($params), true), unserialize(LOGGER_CONTEXT));
             return false;
         }
@@ -149,13 +149,12 @@ class Enviopack
             return false;
         }
         $response = $this->call_api('GET', '/cotizar/precio/a-sucursal', array('access_token' => $this->get_access_token(), 'provincia' => $province, 'codigo_postal' => $cp, 'peso' => $weight, 'paquetes' => $packages, 'monto_pedido' => $order_subtotal, 'plataforma' => 'woocommerce'));
-        
+
         if (is_wp_error($response)) {
             $this->logger->error('Enviopack -> WP Error al obtener precio sucursales: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
             return false;
         }
         if ($response['response']['code'] === 200) {
-            $this->logger->debug('Enviopack -> Access Token: ' . print_r($this->get_access_token(), true ), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
             $new_offices = array();
             foreach ($response as $office) {
@@ -174,7 +173,6 @@ class Enviopack
                     case 'R':
                         $new_office['service_name'] = 'devolución';
                         break;
-
                 }
                 $new_office['shipping_time'] = $office['horas_entrega'];
                 $new_office['service'] = $office['servicio'];
@@ -194,7 +192,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Precio sucursales - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Precio sucursales - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Precio sucursales - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -208,38 +206,11 @@ class Enviopack
         }
         if ($response['response']['code'] === 200) {
             $response = json_decode($response['body'], true);
-            /* $new_packages = array();
-            foreach ($response as $package_object) {
-                $new_package = array();
-                $new_package['id'] = $package_object['id'];
-                $new_package['nombre'] = $package_object['nombre'];
-                $new_package['price'] = $package_object['valor'];
-                switch ($package_object['servicio']) {
-                    case 'N':
-                    default:
-                        $new_package['service_name'] = 'estándar';
-                        break;
-                    case 'P':
-                        $new_package['service_name'] = 'prioritario';
-                        break;
-                    case 'X':
-                        $new_package['service_name'] = 'express';
-                        break;
-                    case 'R':
-                        $new_package['service_name'] = 'devolución';
-                        break;
-
-                }
-                $new_packages[] = $new_package;
-            }
-            usort($new_packages, function ($a, $b) {
-                return $a['shipping_time'] > $b['shipping_time'];
-            }); */
             return $response;
         } else {
             $this->logger->error('Enviopack -> Tipo de Paquetes - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Tipo de Paquetes - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Tipo de Paquetes - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -253,89 +224,31 @@ class Enviopack
         }
         if ($response['response']['code'] === 200) {
             $response = json_decode($response['body'], true);
-            $new_homes = array();
-            foreach ($response as $home) {
-                $new_home = array();
-                $new_home['service'] = $home['servicio'];
-                $new_home['shipping_time'] = $home['horas_entrega'];
-                $new_home['price'] = $home['valor'];
-                switch ($home['servicio']) {
-                    case 'N':
-                    default:
-                        $new_home['service_name'] = 'estándar';
-                        break;
-                    case 'P':
-                        $new_home['service_name'] = 'prioritario';
-                        break;
-                    case 'X':
-                        $new_home['service_name'] = 'express';
-                        break;
-                    case 'R':
-                        $new_home['service_name'] = 'devolución';
-                        break;
-
-                }
-                $new_homes[] = $new_home;
-            }
-            usort($new_homes, function ($a, $b) {
-                return $a['shipping_time'] > $b['shipping_time'];
-            });
-            return $new_homes;
+            return $response;
         } else {
             $this->logger->error('Enviopack -> Precio domicilio - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Precio domicilio - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Precio domicilio - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
 
-    public function get_package($package = '')
+    public function get_package($package)
     {
-        if (!$package) {
-            return false;
-        }
+        if (empty($package)) return false;
 
-        $package = (string) $package;
-
-        $response = $this->call_api('GET', '/tipos-de-paquetes/' . $package, array('access_token' => $this->get_access_token()));
+        $response = $this->call_api('GET', '/tipos-de-paquetes/' . (string)$package, array('access_token' => $this->get_access_token()));
         if (is_wp_error($response)) {
             $this->logger->error('Enviopack -> WP Error al obtener tipos de paquetes: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
             return false;
         }
         if ($response['response']['code'] === 200) {
             $response = json_decode($response['body'], true);
-            $new_packages = array();
-            foreach ($response as $package_object) {
-                $new_package = array();
-                $new_package['service'] = $package_object['servicio'];
-                $new_package['shipping_time'] = $package_object['horas_entrega'];
-                $new_package['price'] = $package_object['valor'];
-                switch ($package_object['servicio']) {
-                    case 'N':
-                    default:
-                        $new_package['service_name'] = 'estándar';
-                        break;
-                    case 'P':
-                        $new_package['service_name'] = 'prioritario';
-                        break;
-                    case 'X':
-                        $new_package['service_name'] = 'express';
-                        break;
-                    case 'R':
-                        $new_package['service_name'] = 'devolución';
-                        break;
-
-                }
-                $new_packages[] = $new_package;
-            }
-            usort($new_packages, function ($a, $b) {
-                return $a['shipping_time'] > $b['shipping_time'];
-            });
-            return $new_packages;
+            return $response;
         } else {
             $this->logger->error('Enviopack -> Tipo de Paquete - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Tipo de Paquete - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Tipo de Paquete - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -383,7 +296,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Precio domicilio - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Precio domicilio - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Precio domicilio - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -398,7 +311,7 @@ class Enviopack
         $cp = $helper->get_postal_code();
         $products = $helper->get_items_from_order();
 
-        if( ! $products ) {
+        if (!$products) {
             $this->logger->error('Enviopack -> Error buscando productos para el vendedor', unserialize(LOGGER_CONTEXT));
             return false;
         }
@@ -443,7 +356,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Precio vendedor - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Precio vendedor - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Precio vendedor - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -465,12 +378,11 @@ class Enviopack
                 unset($val['localidad']);
                 return $val;
             }, $response);
-            $this->logger->debug('Enviopack -> Sucursales - Respuesta Sucursales: ' . (isset($response) ? print_r($response, true) : ''), unserialize(LOGGER_CONTEXT));
             return $response;
         } else {
             $this->logger->error('Enviopack -> Sucursales - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Sucursales - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Sucursales - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -488,7 +400,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Provincias - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Provincias - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Provincias - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -509,7 +421,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Localidades - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Localidades - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Localidades - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -530,7 +442,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Etiquetas - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Etiquetas - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Etiquetas - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -555,7 +467,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Etiquetas - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Etiquetas - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Etiquetas - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -582,7 +494,7 @@ class Enviopack
         } else {
             $this->logger->error('Enviopack -> Correos - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Correos - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Correos - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -600,13 +512,13 @@ class Enviopack
                 update_option('enviopack_access_token', $response['token']);
                 $this->access_token = $response['token'];
             } else {
-                $this->logger->error('Enviopack -> Error del servidor al obtener access token: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+                $this->logger->error('Enviopack -> Error del servidor al obtener access token: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
                 return false;
             }
         } else {
             $this->logger->error('Enviopack -> Access token - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Access token - Error del servidor mensaje: ' . (isset($response['message']) ? $response['message'] : 'Sin mensaje'), unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Access token - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -638,7 +550,7 @@ class Enviopack
 
             // Bad call - Maybe invalid Access token?
             if ($response['response']['code'] === 401) {
-              $this->logger->error('Enviopack -> Error 401 Access Token: ' . $params['access_token'], unserialize(LOGGER_CONTEXT));
+                $this->logger->error('Enviopack -> Error 401 Access Token: ' . $params['access_token'], unserialize(LOGGER_CONTEXT));
                 $this->set_access_token();
                 if (isset($params['access_token'])) {
                     $params['access_token'] = $this->get_access_token();

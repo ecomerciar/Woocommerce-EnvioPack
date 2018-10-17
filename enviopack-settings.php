@@ -76,6 +76,14 @@ function init_settings()
 	);
 
 	add_settings_field(
+		'packaging_mode',
+		'Cálculo de medidas',
+		__NAMESPACE__ . '\print_packaging_mode',
+		'enviopack_settings',
+		'ecom_enviopack'
+	);
+
+	add_settings_field(
 		'extra_info',
 		'Información adicional',
 		__NAMESPACE__ . '\print_extra_info',
@@ -114,6 +122,19 @@ function print_environment()
 	echo '</select>';
 }
 
+function print_packaging_mode()
+{
+	$previous_config = get_option('enviopack_packaging_mode');
+	echo '<select name="packaging_mode">';
+	echo '<option value="sum-package" ' . ($previous_config === 'sum-package' ? 'selected' : '') . '>Calcular sumando las dimensiones de los productos</option>';
+	echo '<option value="max-package" ' . ($previous_config === 'max-package' ? 'selected' : '') . '>Calcular tomando la dimension mas alta de cada producto</option>';
+	echo '<option value="default-package" ' . ($previous_config === 'default-package' ? 'selected' : '') . '>Paquete default</option>';
+	echo '</select>';
+	echo '<p class="info-text"><strong>Calcular sumando las dimensiones de los productos:</strong> Se suman los volúmenes totales de cada paquete y se calculará una caja en forma de cubo con el volumen total.
+		<br> <strong>Calcular tomando la dimension mas alta de cada producto:</strong> Se estimará un solo paquete tomando los lados más grandes de todos los productos.
+		<br> <strong>Paquete default:</strong> Se estimará un solo paquete que previamente se haya <a href="https://app.enviopack.com/configuracion/mis-paquetes" target="_blank">cargado en la plataforma de EnvioPack</a> elegido por usted. </p>';
+}
+
 function print_shipping_mode()
 {
 	if (get_option('enviopack_api_key') && get_option('enviopack_api_secret')) {
@@ -126,7 +147,7 @@ function print_shipping_mode()
 			echo '<option value="' . $courier['id'] . '" ' . ($previous_config === $courier['id'] ? 'selected' : '') . '>Enviar automaticamente - ' . $courier['name'] . '</option>';
 		}
 		echo '</select>';
-		echo '<p class="info-text"><strong>Manual:</strong> Tendrás que confirmar el pedido desde el panel de ordenes.
+		echo '<p class="info-text"><strong>Manual:</strong> Tendrás que confirmar el pedido desde el panel de ordenes de WooCommerce.
 		<br> <strong>Automático:</strong> Todos los pedidos a domicilio marcados como "completado" se enviarán automaticamente con el correo seleccionado. Para los envíos a sucursal se enviarán con el envío seleccionado preseleccionado por la sucursal
 		<br> <strong>NOTA:</strong> Si vas a usar el modo automático, asegurate de que el correo seleccionado está activo para los distintos tipos de modalidades de envío (Express, Normal, etc), de lo contrario tu pedido no será enviado. </p>';
 	}
@@ -219,6 +240,11 @@ function settings_page_content()
 	// Save shipping mode
 	if (isset($_POST['shipping_mode']) && !empty($_POST['shipping_mode'])) {
 		update_option('enviopack_shipping_mode', $_POST['shipping_mode']);
+	}
+
+	// Save shipping mode
+	if (isset($_POST['packaging_mode']) && !empty($_POST['packaging_mode'])) {
+		update_option('enviopack_packaging_mode', $_POST['packaging_mode']);
 	}
 
 	// Save debug

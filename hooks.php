@@ -23,6 +23,7 @@ add_action('wp_ajax_nopriv_get_offices', 'Ecomerciar\Enviopack\Utils\get_offices
 add_action('wp_ajax_set_office', 'Ecomerciar\Enviopack\Utils\set_office');
 add_action('wp_ajax_nopriv_set_office', 'Ecomerciar\Enviopack\Utils\set_office');
 add_filter('woocommerce_cart_shipping_method_full_label', 'Ecomerciar\Enviopack\Utils\enviopack_add_free_shipping_label', 10, 2);
+add_filter('woocommerce_checkout_update_order_review', 'Ecomerciar\Enviopack\Utils\clear_cache');
 
 // --- Orders
 // add_action('woocommerce_new_order', 'Ecomerciar\Enviopack\Utils\create_shipment');

@@ -105,7 +105,7 @@ function enviopack_init()
                     $province = WC()->customer->get_billing_state();
                 }
                 $order_subtotal = WC()->cart->get_subtotal();
-                if(!empty($order_subtotal)) {
+                if (!empty($order_subtotal)) {
                     $order_subtotal = number_format($order_subtotal, 2, '.', '');
                 }
 

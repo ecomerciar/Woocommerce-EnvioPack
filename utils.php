@@ -53,10 +53,10 @@ function get_offices()
 	}
 	$helper = new Helper;
 	$ep = new Enviopack;
-  $products = $helper->get_items_from_cart();
-  if( ! $products ) {
-    return false;
-  }
+	$products = $helper->get_items_from_cart();
+	if (!$products) {
+		return false;
+	}
 
 	$prices = $ep->get_price_to_office($province, $cp, $products['shipping_info']['total_weight'], $products['shipping_info']['products_details_1'], $order_subtotal);
 	$center_coords = $helper->get_state_center($province);
@@ -95,37 +95,37 @@ function check_office_field()
 	$chosen_shipping_method = WC()->session->get('chosen_shipping_methods');
 	$chosen_shipping_method = $chosen_shipping_method[0];
 	$chosen_shipping_method = explode(" ", $chosen_shipping_method);
-	if ($chosen_shipping_method[0] === 'enviopack' && $chosen_shipping_method[1] === 'S' && $_POST['enviopack_office'] === -1) {
+	if ($chosen_shipping_method[0] === 'enviopack' && $chosen_shipping_method[1] === 'S' && (int)$_POST['enviopack_office'] === -1) {
 		wc_add_notice('Por favor elige una sucursal de envío', 'error');
 	}
 }
 
 function update_order_meta($order_id)
 {
-  $order = wc_get_order( $order_id );
-  if ( ! $order ) {
-      return false;
-  }
+	$order = wc_get_order($order_id);
+	if (!$order) {
+		return false;
+	}
 
-  $chosen_shipping_method = WC()->session->get('chosen_shipping_methods');
-  $chosen_shipping_method = reset($chosen_shipping_method);
-  $chosen_shipping_method = explode(" ", $chosen_shipping_method);
+	$chosen_shipping_method = WC()->session->get('chosen_shipping_methods');
+	$chosen_shipping_method = reset($chosen_shipping_method);
+	$chosen_shipping_method = explode(" ", $chosen_shipping_method);
 	if ($chosen_shipping_method[0] === 'enviopack') {
-      $data = array();
-      $data['type'] = $chosen_shipping_method[1];
-      $data['service'] = $chosen_shipping_method[2];
-      $data['office'] = (isset($chosen_shipping_method[3]) ? $chosen_shipping_method[3] : '');
-      $order->update_meta_data('enviopack_shipping_info', serialize($data));
+		$data = array();
+		$data['type'] = $chosen_shipping_method[1];
+		$data['service'] = $chosen_shipping_method[2];
+		$data['office'] = (isset($chosen_shipping_method[3]) ? $chosen_shipping_method[3] : '');
+		$order->update_meta_data('enviopack_shipping_info', serialize($data));
 
-      $ep = new Enviopack;
-      $helper = new Helper($order);
-      $customer = $helper->get_customer();
-      $province_id = $helper->get_province_id();
-      $zone_name = $helper->get_province_name($province_id);
-      $shipment = $ep->create_shipment($order, $customer, $province_id, $zone_name);
-      $order->update_meta_data('enviopack_shipment', serialize($shipment));
+		$ep = new Enviopack;
+		$helper = new Helper($order);
+		$customer = $helper->get_customer();
+		$province_id = $helper->get_province_id();
+		$zone_name = $helper->get_province_name($province_id);
+		$shipment = $ep->create_shipment($order, $customer, $province_id, $zone_name);
+		$order->update_meta_data('enviopack_shipment', serialize($shipment));
 
-      $order->save();
+		$order->save();
 	}
 }
 
@@ -149,71 +149,71 @@ function update_order_meta($order_id)
 
 function confirm_shipment($order_id, $courier_id = '', $source = 'auto')
 {
-  $order = wc_get_order($order_id);
-  if ( ! $order ) {
-      return false;
-  }
+	$order = wc_get_order($order_id);
+	if (!$order) {
+		return false;
+	}
 
-  $chosen_shipping_method = reset($order->get_shipping_methods());
-  if (! $chosen_shipping_method) {
-    return false;
-  }
-  $chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
-  $chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
+	$chosen_shipping_method = reset($order->get_shipping_methods());
+	if (!$chosen_shipping_method) {
+		return false;
+	}
+	$chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
+	$chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
 	if ($chosen_shipping_method[0] === 'enviopack') {
-      if (!$courier_id) {
-        $courier_id = get_option('enviopack_shipping_mode');
-      }
-      // If order should send manually, but the source was from the auto send, cancel the execution
-      if (($courier_id === 'manual' || !$courier_id) && $source === 'auto') {
-        return false;
-      }
+		if (!$courier_id) {
+			$courier_id = get_option('enviopack_shipping_mode');
+		}
+      	// If order should send manually, but the source was from the auto send, cancel the execution
+		if (($courier_id === 'manual' || !$courier_id) && $source === 'auto') {
+			return false;
+		}
 
-      $shipping_method = unserialize($order->get_meta('enviopack_shipping_info', true));
-      if (isset($shipping_method['type']) && $shipping_method['type'] === 'D' && !$courier_id) {
-        wc_get_logger()->error('Enviopack -> Confirmando pedido - Pedido sin courier id', unserialize(LOGGER_CONTEXT));
-        return false;
-      }
-      $ep = new Enviopack;
-      if ($shipping_method['type'] === 'D') {
-        $shipment = $ep->confirm_shipment($order, $courier_id);
-      } else {
-        $shipment = $ep->confirm_shipment($order);
-      }
-      $order->update_meta_data('enviopack_confirmed_shipment', serialize($shipment));
-      $order->update_meta_data('enviopack_tracking_number', $shipment['id']);
-      $label = $ep->get_label($order);
-      $fp = fopen(plugin_dir_path(__FILE__) . 'labels/label-' . $order_id . '.pdf', 'wb');
-      fwrite($fp, $label);
-      fclose($fp);
-      $order->save();
-  }
+		$shipping_method = unserialize($order->get_meta('enviopack_shipping_info', true));
+		if (isset($shipping_method['type']) && $shipping_method['type'] === 'D' && !$courier_id) {
+			wc_get_logger()->error('Enviopack -> Confirmando pedido - Pedido sin courier id', unserialize(LOGGER_CONTEXT));
+			return false;
+		}
+		$ep = new Enviopack;
+		if ($shipping_method['type'] === 'D') {
+			$shipment = $ep->confirm_shipment($order, $courier_id);
+		} else {
+			$shipment = $ep->confirm_shipment($order);
+		}
+		$order->update_meta_data('enviopack_confirmed_shipment', serialize($shipment));
+		$order->update_meta_data('enviopack_tracking_number', $shipment['tracking_number']);
+		$label = $ep->get_label($order);
+		$fp = fopen(plugin_dir_path(__FILE__) . 'labels/label-' . $order_id . '.pdf', 'wb');
+		fwrite($fp, $label);
+		fclose($fp);
+		$order->save();
+	}
 }
 
 function add_box()
 {
-  global $post;
-	$order = wc_get_order( $post->ID );
-  if ( ! $order ) {
-      return false;
-  }
+	global $post;
+	$order = wc_get_order($post->ID);
+	if (!$order) {
+		return false;
+	}
 
-  
-  $chosen_shipping_method = reset($order->get_shipping_methods());
-  if (! $chosen_shipping_method) {
-    return false;
-  }
-  $chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
-  $chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
+
+	$chosen_shipping_method = reset($order->get_shipping_methods());
+	if (!$chosen_shipping_method) {
+		return false;
+	}
+	$chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
+	$chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
 	if ($chosen_shipping_method[0] === 'enviopack') {
-      add_meta_box(
-        'enviopack_box',
-        'EnvioPack',
-        __NAMESPACE__ . '\box_content',
-        'shop_order',
-        'side'
-      );
-  }
+		add_meta_box(
+			'enviopack_box',
+			'EnvioPack',
+			__NAMESPACE__ . '\box_content',
+			'shop_order',
+			'side'
+		);
+	}
 }
 
 function box_content()
@@ -223,19 +223,23 @@ function box_content()
 	$order = wc_get_order($post->ID);
 	if (!empty($order->get_meta('enviopack_confirmed_shipment', true))) {
 		$tracking_number = $order->get_meta('enviopack_tracking_number', true);
+		echo 'Se ha generado el envío de este pedido, debes confirmarlo desde el <a href="https://app.enviopack.com/pedidos/por-confirmar/" target="_blank">panel de EnvíoPack</a>';
 		if ($tracking_number) {
-			echo 'Se ha generado y confirmado el envío de este pedido';
 			echo '<br> Número de rastreo: <strong>' . $tracking_number . '</strong>';
-			$store_url = get_page_link(get_page_by_title('Rastreo')->ID);
-			if (strpos($store_url, '?') === false) {
-				$store_url .= '?';
-			} else {
-				$store_url .= '&';
+			$page_link = get_page_by_title('Rastreo')->ID;
+			if ($page_link) {
+				$store_url = get_page_link($page_link);
+				if (strpos($store_url, '?') === false) {
+					$store_url .= '?';
+				} else {
+					$store_url .= '&';
+				}
+				$store_url .= 'id=' . $tracking_number;
+				echo '<br> <a href="' . $store_url . '" target="_blank">Rastrear pedido</a>';
 			}
-			$store_url .= 'id=' . $tracking_number;
-			echo '<br> <a href="' . $store_url . '" target="_blank">Rastrear pedido</a>';
-			return;
 		}
+		return;
+	} else {
 		echo 'Error al realizar el envío, por favor vuelve a intentarlo con otro correo';
 	}
 	$shipping_method = $order->get_shipping_methods();
@@ -256,6 +260,7 @@ function box_content()
 				$couriers = $ep->get_prices_for_vendor($order);
 				echo '<strong>Correo: </strong>';
 				echo '<select style="width:80%" name="ep_courier">';
+				echo '<option value="-1">Seleccionar automaticamente según las reglas de EnvioPack</option>';
 				foreach ($couriers as $courier) {
 					echo '<option value="' . $courier['id'] . '">' . $courier['name'] . ' ' . $courier['service_name'] . ' - $' . $courier['price'] . '</option>';
 				}
@@ -297,13 +302,13 @@ function save_box($order_id)
 
 function add_action_button($actions, $order)
 {
-  $chosen_shipping_method = reset($order->get_shipping_methods());
-  if (! $chosen_shipping_method) {
-    return $actions;
-  }
-  $chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
-  $chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
-  if ($chosen_shipping_method[0] === 'enviopack') {
+	$chosen_shipping_method = reset($order->get_shipping_methods());
+	if (!$chosen_shipping_method) {
+		return $actions;
+	}
+	$chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
+	$chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
+	if ($chosen_shipping_method[0] === 'enviopack') {
 		$shipment_info = $order->get_meta('enviopack_confirmed_shipment', true);
 		if ($shipment_info) {
 			$actions['ep-label'] = array(
@@ -335,6 +340,12 @@ function create_page()
 		$flag = 'WordPress';
 		$version = '4.9';
 	} else {
+
+		if (defined('ECOM_ENVIOPACK_APIKEY') && defined('ECOM_ENVIOPACK_SECRETKEY') && !empty('ECOM_ENVIOPACK_APIKEY') && !empty('ECOM_ENVIOPACK_SECRETKEY')) {
+			update_option('enviopack_api_key', ECOM_ENVIOPACK_APIKEY);
+			update_option('enviopack_api_secret', ECOM_ENVIOPACK_SECRETKEY);
+		}
+
 		$content = '<h2>Número de envío</h2>
 		<form method="get">
 		<input type="text" name="id"style="width:40%"><br>
@@ -411,81 +422,16 @@ function enviopack_add_free_shipping_label($label, $method)
 {
 	$label_tmp = explode(':', $label);
 	if ($method->get_cost() == 0) {
-		$label = $label_tmp[0].__(' - ¡Envío Gratis!','woocommerce');
+		$label = $label_tmp[0] . __(' - ¡Envío Gratis!', 'woocommerce');
 	}
 	return $label;
 }
 
-/*function get_packet_estimated_size($dimensiones)
+function clear_cache()
 {
-    $estimation_method = Configuration::get("ENVIOPACK_PACKET_ESTIMATION_METHOD");
-
-    switch ($estimation_method) {
-        case EpackConfig::ESTIMATION_SUM_DIMS:
-            return self::SumDimEstimation($dimensiones);
-            break;
-        case EpackConfig::ESTIMATION_MAX_DIMS:
-            return self::MaxDimEstimation($dimensiones);
-            break;
-        case EpackConfig::ESTIMATION_DEFAULT_PACKET:
-            return self::DefaultPacketEstimation();
-            break;
-    }
+	$packages = WC()->cart->get_shipping_packages();
+	foreach ($packages as $key => $value) {
+		$shipping_session = "shipping_for_package_$key";
+		unset(WC()->session->$shipping_session);
+	}
 }
-
-function sum_dim_estimation($dimensiones)
-{
-    // Ordeno las dimensiones de los productos para facilitar las comparaciones
-    foreach ($dimensiones as &$product_dimensions) {
-        sort($product_dimensions);
-    }
-    // Ordeno los paquetes por tamaño
-    array_multisort($dimensiones);
-
-    //- Si el pedido o checkout tiene un solo producto y una sola unidad se crea el paquete con esas dimensiones.
-    if (count($dimensiones) == 1) {
-        $paquete = implode('x', $dimensiones[0]);
-    } else {
-        $all_equal_size = true;
-        for ($i=0; $i < count($dimensiones)-1 ; $i++) { 
-            if ($dimensiones[$i] != $dimensiones[$i+1]) {
-                $all_equal_size = false;
-            }
-        }
-
-        if ($all_equal_size) {
-            //- Si el pedido o checkout tiene un solo producto y 2 unidades se crea el paquete con esas dimensiones. Se calcula 2alto x ancho x largo, donde 2 es la cantidad de productos iguales. En este caso seria bueno no siempre multiplicar la cantidad por el alto sino por la dimension mas chica de las 3: alto o ancho o largo.
-            $paquete = ($dimensiones[0][0] * count($dimensiones)).'x'.$dimensiones[0][1].'x'.$dimensiones[0][2];
-        } else{
-            //- Si el pedido o checkout tiene varios productos distintos, saco el volumen total y estimo un paquete con forma de cubo. Ej. (20x10x30) + (10x5x30) = 7000cm3 = 24x24x24
-            $volumen = 0;
-            foreach ($dimensiones as $producto_dimension) {
-                $volumen += $producto_dimension[0]*$producto_dimension[1]*$producto_dimension[2];
-            }
-
-            $cube_size = ceil( pow($volumen, 1/3) );
-            $paquete = $cube_size.'x'.$cube_size.'x'.$cube_size;
-        }
-    }
-
-    return $paquete;
-}
-
-function max_dim_estimation($dimensiones)
-{
-    // El paquete se arma estimando sus dimensiones en base a las dimension mas alta de cada producto (aun cuando sean muchos productos) Ej: 10x10x20 y 20x5x30. = 20x10x30
-
-    $all_dimensions = array();
-    foreach ($dimensiones as $producto_dimension) {
-        foreach ($producto_dimension as $dimension_name => $value) {
-            $all_dimensions[] = $value;
-        }
-    }
-    rsort($all_dimensions);
-    return $all_dimensions[0].'x'.$all_dimensions[1].'x'.$all_dimensions[2];
-}
-
-function default_packet_estimation()
-{
-    return Configuration::get('ENVIOPACK_PACKET_ESTIMATION_DEFAULT');
-}*/

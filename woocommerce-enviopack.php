@@ -4,7 +4,7 @@
 Plugin Name: Woocommerce EnvíoPack
 Plugin URI: http://ecomerciar.com
 Description: Suma envios a traves de EnvíoPack a tu tienda de WooCommerce
-Version: 1.0
+Version: 1.1
 Author: Ecomerciar
 Requires PHP: 5.6
 Author URI: http://ecomerciar.com
@@ -12,11 +12,13 @@ License: GPL2
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
  */
 
-define('LOGGER_CONTEXT', serialize(array('source' => 'enviopack')));
-
 if (!defined('ABSPATH')) {
 	exit; // Exit if accessed directly.
 }
+
+define('LOGGER_CONTEXT', serialize(array('source' => 'enviopack')));
+define('ECOM_ENVIOPACK_APIKEY', '');
+define('ECOM_ENVIOPACK_SECRETKEY', '');
 
 register_activation_hook(__FILE__, 'Ecomerciar\Enviopack\Utils\create_page');
 register_deactivation_hook(__FILE__, 'Ecomerciar\Enviopack\Utils\destroy_page');
