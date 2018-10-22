@@ -119,7 +119,7 @@ class Enviopack
             $params['piso'] = '';
             $params['depto'] = '';
             $params['referencia_domicilio'] = '';
-            $params['codigo_postal'] = $helper->get_postal_code();
+            $params['codigo_postal'] = filter_var($helper->get_postal_code(), FILTER_SANITIZE_NUMBER_INT);
             $params['provincia'] = $shipment['provincia'];
             $params['localidad'] = $shipment['localidad'];
         } else {
@@ -139,6 +139,19 @@ class Enviopack
             $response = json_decode($response['body'], true);
             $this->logger->error('Enviopack -> Crear envio - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             $this->logger->error('Enviopack -> Crear envio - Data enviada: ' . wc_print_r(json_encode($params), true), unserialize(LOGGER_CONTEXT));
+
+            $message = 'Error al realizar el envío: ';
+            if (isset($response['errors']['global'])) {
+                foreach ($response['errors']['global'] as $key => $value) {
+                    $message .= "$value, ";
+                }
+            }
+
+            foreach ($response['errors']['campos'] as $key => $value) {
+                $message .= "<br>$key - $value";
+            }
+
+            $order->update_meta_data('confirm_shipment_last_error', $message);
             return false;
         }
     }
@@ -550,11 +563,9 @@ class Enviopack
 
             // Bad call - Maybe invalid Access token?
             if ($response['response']['code'] === 401) {
-                $this->logger->error('Enviopack -> Error 401 Access Token: ' . $params['access_token'], unserialize(LOGGER_CONTEXT));
                 $this->set_access_token();
                 if (isset($params['access_token'])) {
                     $params['access_token'] = $this->get_access_token();
-                    $this->logger->error('Enviopack -> Error 401 Access Token: ' . $params['access_token'], unserialize(LOGGER_CONTEXT));
                 }
             } else {
             // Good call - return data

@@ -100,6 +100,7 @@ function enviopack_init()
                 if (empty($cp)) {
                     $cp = WC()->customer->get_billing_postcode();
                 }
+                $cp = filter_var($cp, FILTER_SANITIZE_NUMBER_INT);
                 $province = WC()->customer->get_shipping_state();
                 if (empty($province)) {
                     $province = WC()->customer->get_billing_state();

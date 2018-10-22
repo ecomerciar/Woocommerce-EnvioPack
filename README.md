@@ -12,7 +12,7 @@ Tested up to: 4.9.6
 
 Requires PHP: 5.6
 
-Stable tag: 1.0.2
+Stable tag: 1.1
 
 Language: Spanish
 
@@ -32,6 +32,13 @@ Suma envios a traves de Enviopack a tu tienda de WooCommerce
 4. Usa el plugin en la configuracion de Envios y Zonas de Woocommerce
 
 == Changelog ==
+
+= 1.1 =
+* Errors more detailed when sending shipment
+* Fixed bug with postal codes including letters
+* Fixed bug when a shipment couldn't be created
+* Improved API calls
+* More detailed logs when sending a shipment
 
 = 1.0.2 =
 * Removed debug lines left in settings page

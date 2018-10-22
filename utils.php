@@ -221,7 +221,8 @@ function box_content()
 	global $post;
 
 	$order = wc_get_order($post->ID);
-	if (!empty($order->get_meta('enviopack_confirmed_shipment', true))) {
+	$confirmed_shipment = $order->get_meta('enviopack_confirmed_shipment', true);
+	if (!empty($confirmed_shipment) && $confirmed_shipment !== 'b:0;') {
 		$tracking_number = $order->get_meta('enviopack_tracking_number', true);
 		echo 'Se ha generado el envío de este pedido, debes confirmarlo desde el <a href="https://app.enviopack.com/pedidos/por-confirmar/" target="_blank">panel de EnvíoPack</a>';
 		if ($tracking_number) {
@@ -240,7 +241,7 @@ function box_content()
 		}
 		return;
 	} else {
-		echo 'Error al realizar el envío, por favor vuelve a intentarlo con otro correo';
+		echo $order->get_meta('confirm_shipment_last_error', true);
 	}
 	$shipping_method = $order->get_shipping_methods();
 	$shipping_method = array_shift($shipping_method);
