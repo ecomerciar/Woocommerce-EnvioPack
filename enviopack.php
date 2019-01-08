@@ -193,6 +193,7 @@ class Enviopack
                         $new_office['service_name'] = 'devolución';
                         break;
                 }
+                $new_office['courier'] = $office['sucursal']['correo']['nombre'];
                 $new_office['shipping_time'] = $office['horas_entrega'];
                 $new_office['service'] = $office['servicio'];
                 $new_office['address'] = $office['sucursal']['calle'] . ' ' . $office['sucursal']['numero'];
