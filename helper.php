@@ -92,7 +92,7 @@ class Helper
                 $coords = array(-40.0178043, -68.8075603);
                 break;
             case 'S':
-                $coords = array(-31.4129686, -62.7703876);
+                $coords = array(-31.6134016, -60.7152858);
                 break;
             case 'T':
                 $coords = array(-27.0278799, -65.7376345);
@@ -314,24 +314,30 @@ class Helper
         return $products;
     }
 
-    public function get_items_from_order()
+    public function get_items_from_order($order)
     {
-        $products = array();
-        $items = $this->order->get_items();
+        $products = array(
+            'products' => array(),
+            'shipping_info' => array()
+        );
+        $items = $order->get_items();
         foreach ($items as $item) {
             $product_id = $item->get_variation_id();
-            if (!$product_id) {
+            if (!$product_id)
                 $product_id = $item->get_product_id();
-            }
             $new_product = $this->get_new_product($product_id);
             if (!$new_product) {
                 $this->logger->error('Enviopack Helper -> Error obteniendo productos de la orden, producto con malas dimensiones - ID: ' . $product_id, unserialize(LOGGER_CONTEXT));
                 return false;
             }
-            unset($new_product['id']);
             for ($i = 0; $i < $item->get_quantity(); $i++) {
-                array_push($products, $new_product);
+                array_push($products['products'], $new_product);
             }
+        }
+        $products = $this->set_shipping_products_info($products);
+        if (!$products) {
+            $this->logger->error('Enviopack Helper -> Error obteniendo productos de la orden, productos con malas dimensiones/peso', unserialize(LOGGER_CONTEXT));
+            return false;
         }
         return $products;
     }

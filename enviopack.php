@@ -76,6 +76,7 @@ class Enviopack
             $this->logger->error('Enviopack -> Crear pedido - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
             $this->logger->error('Enviopack -> Crear pedido - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
+            $this->logger->error('Enviopack -> Crear envio - Data enviada: ' . wc_print_r(json_encode($params), true), unserialize(LOGGER_CONTEXT));
             return false;
         }
     }
@@ -88,14 +89,16 @@ class Enviopack
 
         $shipment = unserialize($order->get_meta('enviopack_shipment', true));
         $shipment_info = unserialize($order->get_meta('enviopack_shipping_info', true));
+        if (!isset($shipment_info['service']) || !$shipment_info['service']) return;
         $helper = new Helper($order);
 
-        $products = $helper->get_items_from_order();
+        $products = $helper->get_items_from_order($order);
 
         if (!$products) {
             $this->logger->error('Enviopack -> Error al buscar productos de la orden', unserialize(LOGGER_CONTEXT));
             return false;
         }
+        $dimensions = explode('x', $products['shipping_info']['products_details_1']);
 
         $params = array(
             'access_token' => $this->get_access_token(),
@@ -104,13 +107,16 @@ class Enviopack
             'destinatario' => $shipment['nombre'] . ' ' . $shipment['apellido'],
             'observaciones' => $helper->get_comments(),
             'confirmado' => false,
-            'paquetes' => $products,
+            'paquetes' => array(array(
+                'alto' => $dimensions[0],
+                'ancho' => $dimensions[1],
+                'largo' => $dimensions[2],
+                'peso' => $products['shipping_info']['total_weight']
+            )),
             'despacho' => 'D',
             'modalidad' => $shipment_info['type'],
             'servicio' => $shipment_info['service']
         );
-
-        $params['paquetes'] = array_values($params['paquetes']);
 
         if ($shipment_info['type'] === 'D') {
             $params['correo'] = ((int)$courier_id === -1 ? '' : $courier_id);
@@ -322,7 +328,7 @@ class Enviopack
         $helper = new Helper($order);
         $province_id = $helper->get_province_id();
         $cp = $helper->get_postal_code();
-        $products = $helper->get_items_from_order();
+        $products = $helper->get_items_from_order($order);
 
         if (!$products) {
             $this->logger->error('Enviopack -> Error buscando productos para el vendedor', unserialize(LOGGER_CONTEXT));
@@ -481,6 +487,32 @@ class Enviopack
             $this->logger->error('Enviopack -> Etiquetas - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
             $this->logger->error('Enviopack -> Etiquetas - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+    }
+
+    public function get_shipping_addresses()
+    {
+        $response = $this->call_api('GET', '/direcciones-de-envio', array('access_token' => $this->get_access_token()));
+        if (is_wp_error($response)) {
+            $this->logger->error('Enviopack -> WP Error al obtener direcciones de envio: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
+            return false;
+        }
+        if ($response['response']['code'] === 200) {
+            $response = json_decode($response['body'], true);
+            $new_addresses = array();
+            foreach ($response as $address) {
+                $new_address = array();
+                $new_address['id'] = $address['id'];
+                $new_address['default'] = $address['es_default'];
+                $new_address['address'] = $address['calle'] . ' ' . $address['numero'];
+                $new_addresses[] = $new_address;
+            }
+            return $new_addresses;
+        } else {
+            $this->logger->error('Enviopack -> Direcciones de Envio - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
+            $response = json_decode($response['body'], true);
+            $this->logger->error('Enviopack -> Direcciones de Envio - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
             return false;
         }
     }

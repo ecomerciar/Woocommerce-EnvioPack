@@ -72,10 +72,10 @@ function enviopack_init()
                             'free_shipping' => 'Envio gratis'
                         )
                     ),
-                    'free_shipping' => array(
+                    /*'free_shipping' => array(
                         'title' => __('Envío gratis', 'woocommerce'),
                         'type' => 'checkbox'
-                    )
+                    )*/
                 );
 				// Cargamos todas las clases disponibles de WC y las insertamos en la config de oca
                 $classes = WC()->shipping->get_shipping_classes();
@@ -87,7 +87,8 @@ function enviopack_init()
             public function calculate_shipping($package = array())
             {
                 $products = array();
-                $free_shipping = $this->get_instance_option('free_shipping');
+                //$free_shipping = $this->get_instance_option('free_shipping');
+                $free_shipping = false;
                 $office_shipping = $this->get_instance_option('office_shipping');
                 $home_shipping = $this->get_instance_option('home_shipping');
                 $action = $this->verify_classes($products);
@@ -122,7 +123,7 @@ function enviopack_init()
                 if (WC()->session->get('enviopack_office_id') && WC()->session->get('enviopack_office_address') && WC()->session->get('enviopack_office_service') && WC()->session->get('enviopack_office_price')) {
                     $this->addRate(array('id' => 'S ' . WC()->session->get('enviopack_office_service') . ' ' . WC()->session->get('enviopack_office_id'), 'label' => 'a sucursal ' . WC()->session->get('enviopack_office_address'), 'price' => WC()->session->get('enviopack_office_price')));
                 } else {
-                    //$this->addRate(array('id' => 'S', 'label' => 'a sucursal'));
+                    $this->addRate(array('id' => 'S', 'label' => 'a sucursal', 'price' => 120));
                 }
             }
 

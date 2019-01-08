@@ -27,7 +27,8 @@ add_filter('woocommerce_checkout_update_order_review', 'Ecomerciar\Enviopack\Uti
 
 // --- Orders
 // add_action('woocommerce_new_order', 'Ecomerciar\Enviopack\Utils\create_shipment');
-add_action('woocommerce_order_status_completed', 'Ecomerciar\Enviopack\Utils\confirm_shipment');
+add_action('woocommerce_order_status_changed', 'Ecomerciar\Enviopack\Utils\process_order_status', 10, 3);
+//add_action('woocommerce_order_status_changed', 'Ecomerciar\Enviopack\Utils\confirm_shipment');
 add_action('add_meta_boxes', 'Ecomerciar\Enviopack\Utils\add_box');
 add_action('woocommerce_process_shop_order_meta', 'Ecomerciar\Enviopack\Utils\save_box');
 add_filter('woocommerce_admin_order_actions', 'Ecomerciar\Enviopack\Utils\add_action_button', 10, 2);

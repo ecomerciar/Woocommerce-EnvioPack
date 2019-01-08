@@ -8,7 +8,7 @@ function initMap() {
 
     gmarkers = [];
     var map = new google.maps.Map(document.getElementById('enviopack-map'), {
-        zoom: 10,
+        zoom: 5,
         center: new google.maps.LatLng(-34.6156625, -58.5033378),
         mapTypeId: google.maps.MapTypeId.ROADMAP
     });
@@ -34,11 +34,12 @@ function initMap() {
                 for (var i = 0; i < locations.length; i++) {
                     gmarkers[locations[i][0]] =
                         createMarker(new google.maps.LatLng(locations[i]['lat'], locations[i]['lng']),
+							'<a style="cursor: pointer;background-color: #f83885;border: 1px solid #f83885;color: white;padding: 5px 10px;display: inline-block;border-radius: 4px;font-weight: 600;margin-bottom: 10px;text-align: center;" onclick="selectOffice(\'' + locations[i]['address'] + '\',\'' + locations[i]['id'] + '\',\'' + locations[i]['service'] + '\',\'' + locations[i]['price'] + '\')">Seleccionar</a>' + '<br>' +
                             '<strong>Nombre:</strong> ' + locations[i]['name'] + '<br>' +
                             '<strong>Tlf:</strong> ' + locations[i]['phone'] + '<br>' +
                             '<strong>Dirección:</strong> ' + locations[i]['full_address'] + '<br>' +
-                            '<strong>Tiempo de entrega:</strong> ' + locations[i]['shipping_time'] + ' Hrs<br>' +
-                            '<a style="cursor: pointer" onclick="selectOffice(\'' + locations[i]['address'] + '\',\'' + locations[i]['id'] + '\',\'' + locations[i]['service'] + '\',\'' + locations[i]['price'] + '\')">Seleccionar</a> '
+                            '<strong>Tiempo de entrega:</strong> ' + locations[i]['shipping_time'] + ' Hrs'
+                            
                         );
                 }
                 jQuery('#enviopack-map').css('pointer-events', 'unset');

@@ -30,3 +30,12 @@ require_once 'enviopack.php';
 require_once 'hooks.php';
 require_once 'helper.php';
 require_once 'utils.php';
+
+add_filter('gettext', 'ep_translate_words_array', 20, 3);
+add_filter('ngettext', 'ep_translate_words_array', 20, 3);
+function ep_translate_words_array( $translation, $text, $domain ) {
+    if( $text === 'Enter your address to view shipping options.' ) {
+        $translation = 'Ingresá tu dirección para conocer los costos de envio (Envío a Domicilio / Retiro por sucursal)';
+    }
+    return $translation;
+}
