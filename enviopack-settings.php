@@ -44,17 +44,17 @@ function init_settings()
     );
 
     add_settings_field(
-        'environment',
-        'Entorno',
-        __NAMESPACE__ . '\print_environment',
+        'address',
+        'Dirección de envío',
+        __NAMESPACE__ . '\print_address',
         'enviopack_settings',
         'ecom_enviopack'
     );
 
     add_settings_field(
-        'address',
-        'Dirección de envío',
-        __NAMESPACE__ . '\print_address',
+        'branch_office',
+        'Valor de envío a sucursal ($)',
+        __NAMESPACE__ . '\print_branch_office',
         'enviopack_settings',
         'ecom_enviopack'
     );
@@ -100,6 +100,14 @@ function init_settings()
     );
 
     add_settings_field(
+        'order_status_on_processed',
+        'Estado de pedido luego de procesarse en EnvíoPack',
+        __NAMESPACE__ . '\print_order_status_on_processed',
+        'enviopack_settings',
+        'ecom_enviopack'
+    );
+
+    add_settings_field(
         'extra_info',
         'Información adicional',
         __NAMESPACE__ . '\print_extra_info',
@@ -134,13 +142,11 @@ function print_api_secret()
     echo '<input type="text" name="api_secret" value="' . ($previous_config ? $previous_config : '') . '" />';
 }
 
-function print_environment()
+function print_branch_office()
 {
-    $previous_config = get_option('enviopack_environment');
-    echo '<select name="environment">';
-    echo '<option value="test" ' . ($previous_config === 'test' ? 'selected' : '') . '>Prueba</option>';
-    echo '<option value="prod" ' . ($previous_config === 'prod' ? 'selected' : '') . '>Producción</option>';
-    echo '</select>';
+    $previous_config = get_option('enviopack_branch_office');
+    echo '<input type="text" name="branch_office" value="' . ($previous_config ? $previous_config : '') . '" />';
+    echo '<p class="info-text">En caso de dejar vacío, el valor predeterminado será $120</p>';
 }
 
 function print_packaging_mode()
@@ -248,6 +254,23 @@ function print_google()
     echo '<p class="info-text">API Key usada para mostrar mapa de sucursales en el checkout, para mas información <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank">ingresa acá</a></p>';
 }
 
+function print_order_status_on_processed()
+{
+    $statuses = wc_get_order_statuses();
+    $previous_config = get_option('enviopack_status_on_processed');
+    if (!$previous_config) update_option('enviopack_status_on_processed', 'wc-completed');
+    echo '<select name="status_on_processed">';
+    foreach ($statuses as $status_key => $status_name) {
+        if ($previous_config) {
+            echo '<option value="' . $status_key . '" ' . ($previous_config === $status_key ? 'selected' : '') . '>' . $status_name . '</option>';
+        } else {
+            echo '<option value="' . $status_key . '" ' . ($status_key === 'wc-completed' ? 'selected' : '') . '>' . $status_name . '</option>';
+        }
+    }
+    echo '</select>';
+    echo '<p class="info-text">Las ordenes de WooCommerce se pondran con este estado luego de haber sido procesadas en EnvíoPack</p>';
+}
+
 function print_extra_info()
 {
     echo '<p class="info-text">Al instalar este plugin automaticamente se crea la página de Rastreo, la cual contiene el shortcode [rastreo_enviopack]. Coloca este shortcode en cualquier página que desees usar para rastrear los pedidos de Envíopack o usa la página que creamos por ti.</p>';
@@ -272,48 +295,53 @@ function settings_page_content()
     }
 
 	// Save api_key
-    if (isset($_POST['api_key']) && !empty($_POST['api_key'])) {
+    if (isset($_POST['api_key'])) {
         update_option('enviopack_api_key', $_POST['api_key']);
     }
 
 	// Save api_secret
-    if (isset($_POST['api_secret']) && !empty($_POST['api_secret'])) {
+    if (isset($_POST['api_secret'])) {
         update_option('enviopack_api_secret', $_POST['api_secret']);
     }
-
-	// Save environment
-    if (isset($_POST['environment']) && !empty($_POST['environment'])) {
-        update_option('enviopack_environment', $_POST['environment']);
-    }
-
+    
 	// Save address id
-    if (isset($_POST['address']) && !empty($_POST['address'])) {
+    if (isset($_POST['address'])) {
         update_option('enviopack_address_id', $_POST['address']);
+    }
+    
+    // Save branch_office
+    if (isset($_POST['branch_office'])) {
+        update_option('enviopack_branch_office', $_POST['branch_office']);
     }
 
 	// Save google maps api key
-    if (isset($_POST['gmap_key']) && !empty($_POST['gmap_key'])) {
+    if (isset($_POST['gmap_key'])) {
         update_option('enviopack_gmap_key', $_POST['gmap_key']);
     }
 
 	// Save shipping mode
-    if (isset($_POST['shipping_mode']) && !empty($_POST['shipping_mode'])) {
+    if (isset($_POST['shipping_mode'])) {
         update_option('enviopack_shipping_mode', $_POST['shipping_mode']);
     }
 
 	// Save packaging mode
-    if (isset($_POST['packaging_mode']) && !empty($_POST['packaging_mode'])) {
+    if (isset($_POST['packaging_mode'])) {
         update_option('enviopack_packaging_mode', $_POST['packaging_mode']);
     }
 
 	// Save shipping status
-    if (isset($_POST['shipping_status']) && !empty($_POST['shipping_status'])) {
+    if (isset($_POST['shipping_status'])) {
         update_option('enviopack_shipping_status', $_POST['shipping_status']);
     }
 
 	// Save debug
-    if (isset($_POST['debug']) && !empty($_POST['debug'])) {
+    if (isset($_POST['debug'])) {
         update_option('enviopack_debug', $_POST['debug']);
+    }
+
+    // Save order status
+    if (isset($_POST['status_on_processed'])) {
+        update_option('enviopack_status_on_processed', $_POST['status_on_processed']);
     }
 
     ?>

@@ -51,7 +51,7 @@ function enviopack_init()
                         'type' => 'checkbox',
                         'default' => 'yes'
                     ),
-                    'class' => array(
+                    /* 'class' => array(
                         'title' => 'Si existe la clase',
                         'type' => 'select',
                         'default' => 'nothing',
@@ -71,7 +71,7 @@ function enviopack_init()
                             'enable_method' => 'Activar método de envio',
                             'free_shipping' => 'Envio gratis'
                         )
-                    ),
+                    ), */
                     /*'free_shipping' => array(
                         'title' => __('Envío gratis', 'woocommerce'),
                         'type' => 'checkbox'
@@ -91,9 +91,15 @@ function enviopack_init()
                 $free_shipping = false;
                 $office_shipping = $this->get_instance_option('office_shipping');
                 $home_shipping = $this->get_instance_option('home_shipping');
-                $action = $this->verify_classes($products);
+                $products = $this->get_products_from_cart();
+                $branch_office = get_option('enviopack_branch_office');
 
-                if ($action === 'disable_method' || !$action || ($home_shipping !== 'yes' && $office_shipping !== 'yes')) {
+                //fallback when price is not set
+                if (empty($branch_office)) {
+                    $branch_office = 120;
+                }
+
+                if (($home_shipping !== 'yes' && $office_shipping !== 'yes')) {
                     return false;
                 }
 
@@ -123,51 +129,15 @@ function enviopack_init()
                 if (WC()->session->get('enviopack_office_id') && WC()->session->get('enviopack_office_address') && WC()->session->get('enviopack_office_service') && WC()->session->get('enviopack_office_price')) {
                     $this->addRate(array('id' => 'S ' . WC()->session->get('enviopack_office_service') . ' ' . WC()->session->get('enviopack_office_id'), 'label' => 'a sucursal ' . WC()->session->get('enviopack_office_address'), 'price' => WC()->session->get('enviopack_office_price')));
                 } else {
-                    $this->addRate(array('id' => 'S', 'label' => 'a sucursal', 'price' => 120));
+                    $this->addRate(array('id' => 'S', 'label' => 'a sucursal', 'price' => $branch_office));
                 }
             }
 
-            public function verify_classes(&$products)
+            public function get_products_from_cart()
             {
-                $action = $this->get_instance_option('action');
-                $class = $this->get_instance_option('class');
-                $helper = new Helper;
+                $helper = new Helper();
                 $products = $helper->get_items_from_cart();
-                if (!$products) {
-                    return false;
-                }
-                $condition = false;
-
-                if (!empty($action) && $action !== 'nothing' && !empty($class) && $class !== 'nothing') {
-                    // If action is disable, we search for the classes using OR logic, finding just one
-                    if ($action === 'disable_method') {
-                        foreach ($products as $item) {
-                            $product = wc_get_product($item['id']);
-                            if ($class === $product->get_shipping_class()) {
-                                $condition = true;
-                                $break;
-                            }
-                        }
-                    } else {
-                        $condition = true;
-                        foreach ($products as $item) {
-                            $product = wc_get_product($item['id']);
-                            if ($class !== $product->get_shipping_class()) {
-                                $condition = false;
-                                $break;
-                            }
-                        }
-                    }
-                } else {
-                    $condition = $action = 'nothing';
-                }
-
-                if ($condition) {
-                    return $action;
-                } else if ($action === 'enable_method') {
-                    return 'disable_method';
-                }
-                return 'nothing';
+                return $products;
             }
 
             public function addRate($params = array())

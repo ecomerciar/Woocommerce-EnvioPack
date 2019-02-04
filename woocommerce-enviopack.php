@@ -5,15 +5,15 @@ Plugin Name: Woocommerce EnvíoPack
 Plugin URI: http://ecomerciar.com
 Description: Suma envios a traves de EnvíoPack a tu tienda de WooCommerce
 Version: 1.1
-Author: Ecomerciar
+Author: Envío Pack
 Requires PHP: 5.6
-Author URI: http://ecomerciar.com
+Author URI: https://www.enviopack.com
 License: GPL2
 License URI:  https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if (!defined('ABSPATH')) {
-	exit; // Exit if accessed directly.
+    exit; // Exit if accessed directly.
 }
 
 define('LOGGER_CONTEXT', serialize(array('source' => 'enviopack')));
@@ -33,8 +33,9 @@ require_once 'utils.php';
 
 add_filter('gettext', 'ep_translate_words_array', 20, 3);
 add_filter('ngettext', 'ep_translate_words_array', 20, 3);
-function ep_translate_words_array( $translation, $text, $domain ) {
-    if( $text === 'Enter your address to view shipping options.' ) {
+function ep_translate_words_array($translation, $text, $domain)
+{
+    if ($text === 'Enter your address to view shipping options.') {
         $translation = 'Ingresá tu dirección para conocer los costos de envio (Envío a Domicilio / Retiro por sucursal)';
     }
     return $translation;

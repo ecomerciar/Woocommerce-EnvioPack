@@ -65,6 +65,7 @@ class Enviopack
             'localidad' => $zone_name
         );
         $response = $this->call_api('POST', '/pedidos', $params);
+
         if (is_wp_error($response)) {
             $this->logger->error('Enviopack -> WP Error al crear pedido: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
             return false;
@@ -76,6 +77,12 @@ class Enviopack
             $this->logger->error('Enviopack -> Crear pedido - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
             $this->logger->error('Enviopack -> Crear pedido - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
+
+            foreach ($response['errors'] as $key => $value) {
+                foreach ($value as $response_key => $response_error) {
+                    $this->logger->error('Enviopack -> Response errors:  ' . $key . ' -> ' . $response_key . ' -> ' . $response_error, unserialize(LOGGER_CONTEXT));
+                }
+            }
             $this->logger->error('Enviopack -> Crear envio - Data enviada: ' . wc_print_r(json_encode($params), true), unserialize(LOGGER_CONTEXT));
             return false;
         }
@@ -118,18 +125,68 @@ class Enviopack
             'servicio' => $shipment_info['service']
         );
 
+        /* if (empty($params['pedido']) || strlen($params['destinatario']) > 50 || empty($params['modalidad'])) {
+            return false;
+        } */
+
+        if (empty($params['pedido'])) {
+            $params['pedido'] = "";
+        }
+        if (strlen($params['destinatario']) > 50) {
+            $params['destinatario'] = "";
+        }
+        if (empty($params['modalidad'])) {
+            $params['modalidad'] = "";
+        }
+
         if ($shipment_info['type'] === 'D') {
+
+            $direction_param = $helper->get_address($order);
+
             $params['correo'] = ((int)$courier_id === -1 ? '' : $courier_id);
-            $params['calle'] = $helper->get_street();
-            $params['numero'] = $helper->get_street_number();
-            $params['piso'] = '';
-            $params['depto'] = '';
+            $params['calle'] = $direction_param['street'];
+            $params['numero'] = $direction_param['number'];
+            $params['piso'] = $direction_param['floor'];
+            $params['depto'] = $direction_param['apartment'];
             $params['referencia_domicilio'] = '';
             $params['codigo_postal'] = filter_var($helper->get_postal_code(), FILTER_SANITIZE_NUMBER_INT);
             $params['provincia'] = $shipment['provincia'];
             $params['localidad'] = $shipment['localidad'];
+
+            /* if (empty($params['calle']) || strlen($params['calle']) > 30 || empty($params['numero']) || strlen($params['numero']) > 5 || strlen($params['piso']) > 6 || strlen($params['depto']) > 4 || strlen($params['referencia_domicilio']) > 30 || !preg_match('/^\d{4}$/', $params['codigo_postal'], $res) || empty($params['provincia']) || empty($params['localidad'])) {
+                return false;
+            } */
+
+            if (empty($params['calle']) || strlen($params['calle']) > 30) {
+                $params['calle'] = "";
+            }
+            if (empty($params['numero']) || strlen($params['numero']) > 5) {
+                $params['numero'] = "";
+            }
+            if (strlen($params['piso']) > 6) {
+                $params['piso'] = "";
+            }
+            if (strlen($params['depto']) > 4) {
+                $params['depto'] = "";
+            }
+            if (strlen($params['referencia_domicilio']) > 30) {
+                $params['referencia_domicilio'] = "";
+            }
+            if (!preg_match('/^\d{4}$/', $params['codigo_postal'], $res)) {
+                $params['codigo_postal'] = "";
+            }
+            if (empty($params['provincia'])) {
+                $params['provincia'] = "";
+            }
+            if (empty($params['localidad'])) {
+                $params['localidad'] = "";
+            }
+
         } else {
             $params['sucursal'] = $shipment_info['office'];
+            if (empty($params['sucursal'])) {
+                return false;
+            }
         }
 
         $response = $this->call_api('POST', '/envios', $params);

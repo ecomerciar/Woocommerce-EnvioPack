@@ -116,68 +116,56 @@ function update_order_meta($order_id)
         $order->update_meta_data('enviopack_shipping_info', serialize($data));
         $order->save();
 
-        $ep = new Enviopack;
-        $helper = new Helper($order);
-        $customer = $helper->get_customer();
-        $province_id = $helper->get_province_id();
-        $zone_name = $helper->get_province_name($province_id);
-        $shipment = $ep->create_shipment($order, $customer, $province_id, $zone_name);
-        if ($shipment) {
-            $order->update_meta_data('enviopack_shipment', serialize($shipment));
-            $order->save();
-            $config_status = get_option('enviopack_shipping_status');
-            $order_status = $order->get_status();
-            if ($config_status && $order->get_status() === $config_status) {
+        $config_status = get_option('enviopack_shipping_status');
+        $order_status = $order->get_status();
+        if ($config_status && ($order_status === $config_status)) {
+            $ep = new Enviopack;
+            $helper = new Helper($order);
+            $customer = $helper->get_customer();
+            $province_id = $helper->get_province_id();
+            $zone_name = $helper->get_province_name($province_id);
+            $shipment = $ep->create_shipment($order, $customer, $province_id, $zone_name);
+
+            if ($shipment) {
+                $order->update_meta_data('enviopack_shipment', serialize($shipment));
+                $order->save();
                 confirm_shipment($order_id);
             }
         }
     }
 }
 
-/* function create_shipment($order_id)
-{
-  $order = wc_get_order($order_id);
-  if ( ! $order ) {
-      return false;
-  }
-  wc_get_logger()->error('Enviopack -> Creating Shipment: ' . print_r($order->get_shipping_methods(), true), unserialize(LOGGER_CONTEXT));
-  $chosen_shipping_method = reset($order->get_shipping_methods());
-  if (! $chosen_shipping_method) {
-    return false;
-  }
-  $chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
-  $chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
-	if ($chosen_shipping_method[0] === 'enviopack') {
-      $order->save();
-  }
-} */
-
 function process_order_status($order_id, $old_status, $new_status)
 {
     $order = wc_get_order($order_id);
+
+    $order_shipping_method = reset($order->get_items('shipping'))->get_method_id();
+
     $config_status = get_option('enviopack_shipping_status');
     if (!$order || !$config_status) return false;
+    if ($order_shipping_method !== 'enviopack') return false;
+
     if ($order->get_meta('enviopack_shipment', true) && !$order->get_meta('enviopack_confirmed_shipment', true)) {
         if ($config_status && ('wc-' . $new_status) === $config_status) {
             confirm_shipment($order_id);
+
         } else if ($config_status && $new_status === $config_status) {
             confirm_shipment($order_id);
         }
-    } else {
+    } else if ($config_status && (('wc-' . $new_status) === $config_status || $new_status === $config_status)) {
         $ep = new Enviopack;
         $helper = new Helper($order);
         $customer = $helper->get_customer();
         $province_id = $helper->get_province_id();
         $zone_name = $helper->get_province_name($province_id);
         $shipment = $ep->create_shipment($order, $customer, $province_id, $zone_name);
+
         if ($shipment) {
             $order->update_meta_data('enviopack_shipment', serialize($shipment));
             $order->save();
-            $config_status = get_option('enviopack_shipping_status');
-            $order_status = $order->get_status();
-            if ($config_status && $order->get_status() === $config_status) {
-                confirm_shipment($order_id);
-            }
+
+            confirm_shipment($order_id);
+
         }
     }
 }
@@ -192,19 +180,7 @@ function confirm_shipment($order_id, $courier_id = -1, $source = 'auto')
     $chosen_shipping_method_id = $chosen_shipping_method->get_method_id();
     $chosen_shipping_method = explode(" ", $chosen_shipping_method_id);
     if ($chosen_shipping_method[0] === 'enviopack') {
-        /* if (!$courier_id) {
-            $courier_id = get_option('enviopack_shipping_mode');
-        } */
-      	// If order should send manually, but the source was from the auto send, cancel the execution
-        /* if (($courier_id === 'manual' || !$courier_id) && $source === 'auto') {
-            return false;
-        } */
-
         $shipping_method = unserialize($order->get_meta('enviopack_shipping_info', true));
-        /* if (isset($shipping_method['type']) && $shipping_method['type'] === 'D' && !$courier_id) {
-            wc_get_logger()->error('Enviopack -> Confirmando pedido - Pedido sin courier id', unserialize(LOGGER_CONTEXT));
-            return false;
-        } */
         if (!$shipping_method) return false;
         $ep = new Enviopack;
         if ($shipping_method['type'] === 'D') {
@@ -214,13 +190,10 @@ function confirm_shipment($order_id, $courier_id = -1, $source = 'auto')
         }
         if ($shipment) {
             $order->update_meta_data('enviopack_confirmed_shipment', serialize($shipment));
+            $order->update_meta_data('enviopack_order_number', $shipment['id']);
             if (isset($shipment['tracking_number']))
                 $order->update_meta_data('enviopack_tracking_number', $shipment['tracking_number']);
         }
-        /* $label = $ep->get_label($order);
-        $fp = fopen(plugin_dir_path(__FILE__) . 'labels/label-' . $order_id . '.pdf', 'wb');
-        fwrite($fp, $label);
-        fclose($fp); */
         $order->save();
     }
 }
@@ -292,18 +265,9 @@ function box_content()
             }
             $shipping_method = unserialize($order->get_meta('enviopack_shipping_info', true));
             if (isset($shipping_method['type']) && $shipping_method['type'] === 'D') {
-                /* $ep = new Enviopack;
-                $couriers = $ep->get_prices_for_vendor($order); */
+
                 echo 'Una vez que el pedido esté pago se importará automáticamente a EnvíoPack. Gestioná tus envíos ingresando a tu cuenta.';
-                /* echo '<br>';
-                echo '<br>';
-                echo '<strong>Correo: </strong>';
-                echo '<select style="width:80%" name="ep_courier">';
-                echo '<option value="-1">Seleccionar automaticamente según las reglas de EnvioPack</option>';
-                foreach ($couriers as $courier) {
-                    echo '<option value="' . $courier['id'] . '">' . $courier['name'] . ' ' . $courier['service_name'] . ' - $' . $courier['price'] . '</option>';
-                }
-                echo '</select>'; */
+
             } else if (isset($shipping_method['type']) && $shipping_method['type'] === 'S') {
                 echo '<strong>Correo: </strong> Ya seleccionado por la sucursal';
             }
@@ -476,4 +440,31 @@ function clear_cache()
         $shipping_session = "shipping_for_package_$key";
         unset(WC()->session->$shipping_session);
     }
+}
+
+function handle_webhook()
+{
+    $enviopack_order_number = htmlspecialchars($_GET["id"]);
+    $enviopack_order_number = filter_var($enviopack_order_number, FILTER_SANITIZE_NUMBER_INT);
+
+    $args = array(
+        'status' => 'completed',
+        'meta_key' => 'enviopack_order_number',
+        'meta_value' => $enviopack_order_number
+    );
+    $orders = wc_get_orders($args);
+    if (empty($orders)) {
+        wc_get_logger()->error('Webhook recibido para la orden: ' . $enviopack_order_number . ' no se encontró orden con esta meta data');
+        return false;
+    }
+    $order = $orders[0];
+
+    $status = get_option('enviopack_status_on_processed', false);
+    if ($status) {
+        $order->set_status($status);
+        $order->save();
+    } else {
+        wc_get_logger()->error('Webhook - No se encontró el nuevo estado a colocar en orden');
+    }
+
 }

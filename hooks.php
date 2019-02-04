@@ -37,3 +37,6 @@ add_action('admin_enqueue_scripts', 'Ecomerciar\Enviopack\Utils\add_button_css_f
 
 // --- Other
 add_shortcode('enviopack_tracking', 'Ecomerciar\Enviopack\Utils\create_shortcode');
+
+// --- Webhook
+add_action('woocommerce_api_ecom-enviopack', 'Ecomerciar\Enviopack\Utils\handle_webhook');
