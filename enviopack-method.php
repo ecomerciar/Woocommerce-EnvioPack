@@ -118,18 +118,18 @@ function enviopack_init()
                 }
 
                 $ep = new Enviopack;
+		    
+		if (WC()->session->get('enviopack_office_id') && WC()->session->get('enviopack_office_address') && WC()->session->get('enviopack_office_service') && WC()->session->get('enviopack_office_price')) {
+                    $this->addRate(array('id' => 'S ' . WC()->session->get('enviopack_office_service') . ' ' . WC()->session->get('enviopack_office_id'), 'label' => 'a sucursal ' . WC()->session->get('enviopack_office_address'), 'price' => WC()->session->get('enviopack_office_price')));
+                } else {
+                    $this->addRate(array('id' => 'S', 'label' => 'a sucursal', 'price' => $branch_office));
+                }
 
                 $prices = $ep->get_price_to_home($province, $cp, $products['shipping_info']['total_weight'], $products['shipping_info']['products_details_1'], $order_subtotal);
                 if ($prices) {
                     foreach ($prices as $price) {
                         $this->addRate(array('id' => 'D ' . $price['service'], 'label' => 'a domicilio ' . $price['service_name'] . ' (' . $price['shipping_time'] . ' Hrs)', 'price' => $price['price']));
                     }
-                }
-
-                if (WC()->session->get('enviopack_office_id') && WC()->session->get('enviopack_office_address') && WC()->session->get('enviopack_office_service') && WC()->session->get('enviopack_office_price')) {
-                    $this->addRate(array('id' => 'S ' . WC()->session->get('enviopack_office_service') . ' ' . WC()->session->get('enviopack_office_id'), 'label' => 'a sucursal ' . WC()->session->get('enviopack_office_address'), 'price' => WC()->session->get('enviopack_office_price')));
-                } else {
-                    $this->addRate(array('id' => 'S', 'label' => 'a sucursal', 'price' => $branch_office));
                 }
             }
 
