@@ -44,6 +44,14 @@ function init_settings()
     );
 
     add_settings_field(
+        'epack_api_link',
+        'Notificaciones de EnvíoPack',
+        __NAMESPACE__ . '\print_epack_api_link',
+        'enviopack_settings',
+        'ecom_enviopack'
+    );
+
+    add_settings_field(
         'address',
         'Dirección de envío',
         __NAMESPACE__ . '\print_address',
@@ -140,6 +148,12 @@ function print_api_secret()
 {
     $previous_config = get_option('enviopack_api_secret');
     echo '<input type="text" name="api_secret" value="' . ($previous_config ? $previous_config : '') . '" />';
+}
+
+function print_epack_api_link()
+{
+    echo '<p class="info-text">Ingresa a tus <a href="https://app.enviopack.com/configuraciones-api" target="_blank">Configuraciones de API</a> en EnvíoPack y coloca en "URL PARA NOTIFICACIONES" el siguiente link:
+    <br><strong>' . get_site_url(null, '/wc-api/ecom-enviopack') . '</strong></p>';
 }
 
 function print_branch_office()
