@@ -119,7 +119,7 @@ function enviopack_init()
 
                 $ep = new Enviopack;
 		    
-		if (WC()->session->get('enviopack_office_id') && WC()->session->get('enviopack_office_address') && WC()->session->get('enviopack_office_service') && WC()->session->get('enviopack_office_price')) {
+		if (WC()->session->get('enviopack_office_id') && WC()->session->get('enviopack_office_address') && WC()->session->get('enviopack_office_service') && WC()->session->get('enviopack_office_price') !== null) {
                     $this->addRate(array('id' => 'S ' . WC()->session->get('enviopack_office_service') . ' ' . WC()->session->get('enviopack_office_id'), 'label' => 'a sucursal ' . WC()->session->get('enviopack_office_address'), 'price' => WC()->session->get('enviopack_office_price')));
                 } else {
                     $this->addRate(array('id' => 'S', 'label' => 'a sucursal', 'price' => $branch_office));
