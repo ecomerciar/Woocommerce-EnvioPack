@@ -8,7 +8,7 @@ function initMap() {
 
     gmarkers = [];
     var map = new google.maps.Map(document.getElementById('enviopack-map'), {
-        zoom: 5,
+        zoom: 10,
         center: new google.maps.LatLng(-34.6156625, -58.5033378),
         mapTypeId: google.maps.MapTypeId.ROADMAP
     });
@@ -28,8 +28,14 @@ function initMap() {
             if (data.success) {
                 var locations = data.data.offices;
                 var center_coords = data.data.center_coords;
-                if (center_coords) {
-                    map.panTo(new google.maps.LatLng(center_coords[0], center_coords[1]));
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        map.panTo(new google.maps.LatLng(position.coords.latitude, position.coords.longitude));
+                    });
+                } else {
+                    if (center_coords) {
+                        map.panTo(new google.maps.LatLng(center_coords[0], center_coords[1]));
+                    }
                 }
                 for (var i = 0; i < locations.length; i++) {
                     gmarkers[locations[i][0]] =

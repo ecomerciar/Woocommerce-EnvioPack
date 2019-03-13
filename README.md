@@ -12,7 +12,7 @@ Tested up to: 4.9.6
 
 Requires PHP: 5.6
 
-Stable tag: 1.1
+Stable tag: 1.2
 
 Language: Spanish
 
@@ -32,6 +32,10 @@ Suma envios a traves de Enviopack a tu tienda de WooCommerce
 4. Usa el plugin en la configuracion de Envios y Zonas de Woocommerce
 
 == Changelog ==
+
+= 1.2 =
+* Added auto zooming in the map
+* Now the shipping zone gets created automatically
 
 = 1.1 =
 * Errors more detailed when sending shipment

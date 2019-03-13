@@ -199,6 +199,36 @@ class Helper
         return $zone;
     }
 
+    public function get_zones_names_for_shipping_zone()
+    {
+        $zones = array();
+        $zones[] = array('code' => 'AR:C', 'type' => 'state');
+        $zones[] = array('code' => 'AR:B', 'type' => 'state');
+        $zones[] = array('code' => 'AR:K', 'type' => 'state');
+        $zones[] = array('code' => 'AR:H', 'type' => 'state');
+        $zones[] = array('code' => 'AR:U', 'type' => 'state');
+        $zones[] = array('code' => 'AR:X', 'type' => 'state');
+        $zones[] = array('code' => 'AR:W', 'type' => 'state');
+        $zones[] = array('code' => 'AR:E', 'type' => 'state');
+        $zones[] = array('code' => 'AR:P', 'type' => 'state');
+        $zones[] = array('code' => 'AR:Y', 'type' => 'state');
+        $zones[] = array('code' => 'AR:L', 'type' => 'state');
+        $zones[] = array('code' => 'AR:F', 'type' => 'state');
+        $zones[] = array('code' => 'AR:M', 'type' => 'state');
+        $zones[] = array('code' => 'AR:N', 'type' => 'state');
+        $zones[] = array('code' => 'AR:Q', 'type' => 'state');
+        $zones[] = array('code' => 'AR:R', 'type' => 'state');
+        $zones[] = array('code' => 'AR:A', 'type' => 'state');
+        $zones[] = array('code' => 'AR:J', 'type' => 'state');
+        $zones[] = array('code' => 'AR:D', 'type' => 'state');
+        $zones[] = array('code' => 'AR:Z', 'type' => 'state');
+        $zones[] = array('code' => 'AR:S', 'type' => 'state');
+        $zones[] = array('code' => 'AR:G', 'type' => 'state');
+        $zones[] = array('code' => 'AR:V', 'type' => 'state');
+        $zones[] = array('code' => 'AR:T', 'type' => 'state');
+        return $zones;
+    }
+
     public function get_street()
     {
         if (!$this->order) {

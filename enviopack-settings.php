@@ -303,7 +303,6 @@ function create_menu_option()
 
 function settings_page_content()
 {
-
     if (!current_user_can('manage_options')) {
         return;
     }

@@ -369,6 +369,14 @@ function create_page()
                 'ping_status' => 'closed'
             ));
         }
+        $zone = new \WC_Shipping_Zone();
+        if ($zone) {
+            $zone->set_zone_name('Argentina');
+            $helper = new Helper();
+            $zone->set_locations($helper->get_zones_names_for_shipping_zone());
+            $zone->add_shipping_method('enviopack');
+            $zone->save();
+        }
         return;
     }
     deactivate_plugins(basename(__FILE__));
