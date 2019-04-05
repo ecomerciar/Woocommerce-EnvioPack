@@ -456,7 +456,6 @@ function handle_webhook()
     $enviopack_order_number = filter_var($enviopack_order_number, FILTER_SANITIZE_NUMBER_INT);
 
     $args = array(
-        'status' => 'completed',
         'meta_key' => 'enviopack_order_number',
         'meta_value' => $enviopack_order_number
     );
