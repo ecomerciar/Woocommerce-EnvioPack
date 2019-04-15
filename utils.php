@@ -367,37 +367,35 @@ function create_page()
 
 function create_shortcode()
 {
-    ob_start();
-    $content = '<h2 class="tracking-form-title">Número de envío</h2>
-		<form method="get" class="tracking-form">
-		<input type="text" name="enviopack_form_id" style="width:40%" class="tracking-form-field"><br>
+    $content = '<h2 class="enviopack-tracking-form-title">Número de envío</h2>
+		<form method="get" class="enviopack-tracking-form">
+		<input type="text" name="enviopack_form_id" style="width:40%" class="enviopack-tracking-form-field"><br>
 		<br />
-		<input name="submit_button" type="submit"  value="Consultar"  id="update_button"  class="tracking-form-submit update_button" style="cursor: pointer;background-color: #f83885;border: 1px solid #f83885;color: white;padding: 5px 10px;display: inline-block;border-radius: 4px;font-weight: 600;margin-bottom: 10px;text-align: center;"/>
+		<input name="submit_button" type="submit"  value="Consultar"  id="update_button"  class="enviopack-tracking-form-submit update_button" style="cursor: pointer;background-color: #f83885;border: 1px solid #f83885;color: white;padding: 5px 10px;display: inline-block;border-radius: 4px;font-weight: 600;margin-bottom: 10px;text-align: center;"/>
 		</form>';
-    echo $content;
     if (isset($_GET['enviopack_form_id'])) {
         $ep = new Enviopack;
         $ep_id = filter_var($_GET['enviopack_form_id'], FILTER_SANITIZE_SPECIAL_CHARS);
         $tracking_statuses = $ep->get_tracking_statuses($ep_id);
         if (!empty($tracking_statuses)) {
-            echo '<h3>Envío Nro: ' . $ep_id . '</h3>';
-            echo "<table>";
-            echo "<tr>";
-            echo "<th width=\"30%\">Fecha</th>";
-            echo "<th width=\"70%\">Estado actual</th>";
-            echo "</tr>";
+            $content .= '<h3 class="enviopack-tracking-results-number">Envío Nro: ' . $ep_id . '</h3>';
+            $content .= '<table class="enviopack-tracking-results-table">';
+            $content .= "<tr>";
+            $content .= "<th width=\"30%\">Fecha</th>";
+            $content .= "<th width=\"70%\">Estado actual</th>";
+            $content .= "</tr>";
             foreach ($tracking_statuses as $tracking_status) {
-                echo "<tr>";
-                echo "<td>" . $tracking_status['fecha'] . "</td>";
-                echo "<td>" . $tracking_status['mensaje'] . "</td>";
-                echo "</tr>";
+                $content .= "<tr>";
+                $content .= "<td>" . $tracking_status['fecha'] . "</td>";
+                $content .= "<td>" . $tracking_status['mensaje'] . "</td>";
+                $content .= "</tr>";
             }
-            echo "</table>";
+            $content .= "</table>";
         } else {
-            wc_print_notice('Hubo un error, por favor intenta nuevamente', 'error');
+            $content .= '<h3  class="enviopack-tracking-error">Hubo un error, por favor intenta nuevamente</h3>';
         }
-        return ob_get_clean();
     }
+	return $content;
 }
 
 function create_settings_link($links)
