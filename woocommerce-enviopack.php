@@ -21,7 +21,6 @@ define('ECOM_ENVIOPACK_APIKEY', '');
 define('ECOM_ENVIOPACK_SECRETKEY', '');
 
 register_activation_hook(__FILE__, 'Ecomerciar\Enviopack\Utils\create_page');
-register_deactivation_hook(__FILE__, 'Ecomerciar\Enviopack\Utils\destroy_page');
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'Ecomerciar\Enviopack\Utils\create_settings_link');
 
 require_once 'enviopack-method.php';
