@@ -351,24 +351,6 @@ function create_page()
             update_option('enviopack_api_key', ECOM_ENVIOPACK_APIKEY);
             update_option('enviopack_api_secret', ECOM_ENVIOPACK_SECRETKEY);
         }
-
-        $content = '<h2>Número de envío</h2>
-		<form method="get">
-		<input type="text" name="id"style="width:40%"><br>
-		<br />
-		<input name="submit_button" type="submit"  value="Consultar"  id="update_button"  class="update_button"/>
-		</form>
-		[enviopack_tracking]';
-        if (!post_exists('Rastreo', $content)) {
-            wp_insert_post(array(
-                'post_title' => 'Rastreo',
-                'post_status' => 'publish',
-                'post_type' => 'page',
-                'post_content' => $content,
-                'comment_status' => 'closed',
-                'ping_status' => 'closed'
-            ));
-        }
         $zone = new \WC_Shipping_Zone();
         if ($zone) {
             $zone->set_zone_name('Argentina');
@@ -383,27 +365,19 @@ function create_page()
     wp_die('<p><strong>Enviopack</strong> Requiere al menos ' . $flag . ' version ' . $version . ' o mayor.</p>', 'Plugin Activation Error', array('response' => 200, 'back_link' => true));
 }
 
-function destroy_page()
-{
-    $content = '<h2>Número de envío</h2>
-	<form method="post">
-	<input type="text" name="id"style="width:40%"><br>
-	<br />
-	<input name="submit_button" type="submit"  value="Consultar"  id="update_button"  class="update_button"/>
-	</form>
-	[enviopack_tracking]';
-    $post_id = post_exists('Rastreo', $content);
-    if ($post_id) {
-        wp_delete_post($post_id, true);
-    }
-}
-
 function create_shortcode()
 {
-    if (isset($_GET['id'])) {
-        ob_start();
+    ob_start();
+    $content = '<h2>Número de envío</h2>
+		<form method="get">
+		<input type="text" name="enviopack_form_id" style="width:40%"><br>
+		<br />
+		<input name="submit_button" type="submit"  value="Consultar"  id="update_button"  class="update_button" style="cursor: pointer;background-color: #f83885;border: 1px solid #f83885;color: white;padding: 5px 10px;display: inline-block;border-radius: 4px;font-weight: 600;margin-bottom: 10px;text-align: center;"/>
+		</form>';
+    echo $content;
+    if (isset($_GET['enviopack_form_id'])) {
         $ep = new Enviopack;
-        $ep_id = filter_var($_GET['id'], FILTER_SANITIZE_SPECIAL_CHARS);
+        $ep_id = filter_var($_GET['enviopack_form_id'], FILTER_SANITIZE_SPECIAL_CHARS);
         $tracking_statuses = $ep->get_tracking_statuses($ep_id);
         if (!empty($tracking_statuses)) {
             echo '<h3>Envío Nro: ' . $ep_id . '</h3>';
