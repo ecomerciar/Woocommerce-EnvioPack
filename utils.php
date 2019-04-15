@@ -368,11 +368,11 @@ function create_page()
 function create_shortcode()
 {
     ob_start();
-    $content = '<h2>Número de envío</h2>
-		<form method="get">
-		<input type="text" name="enviopack_form_id" style="width:40%"><br>
+    $content = '<h2 class="tracking-form-title">Número de envío</h2>
+		<form method="get" class="tracking-form">
+		<input type="text" name="enviopack_form_id" style="width:40%" class="tracking-form-field"><br>
 		<br />
-		<input name="submit_button" type="submit"  value="Consultar"  id="update_button"  class="update_button" style="cursor: pointer;background-color: #f83885;border: 1px solid #f83885;color: white;padding: 5px 10px;display: inline-block;border-radius: 4px;font-weight: 600;margin-bottom: 10px;text-align: center;"/>
+		<input name="submit_button" type="submit"  value="Consultar"  id="update_button"  class="tracking-form-submit update_button" style="cursor: pointer;background-color: #f83885;border: 1px solid #f83885;color: white;padding: 5px 10px;display: inline-block;border-radius: 4px;font-weight: 600;margin-bottom: 10px;text-align: center;"/>
 		</form>';
     echo $content;
     if (isset($_GET['enviopack_form_id'])) {
