@@ -287,7 +287,7 @@ function print_order_status_on_processed()
 
 function print_extra_info()
 {
-    echo '<p class="info-text">Al instalar este plugin automaticamente se crea la página de Rastreo, la cual contiene el shortcode [rastreo_enviopack]. Coloca este shortcode en cualquier página que desees usar para rastrear los pedidos de Envíopack o usa la página que creamos por ti.</p>';
+    echo '<p class="info-text">Al instalar este plugin podés empezar a usar el shortcode [enviopack_tracking]. Coloca este shortcode en cualquier página que desees usar para crear un formulario de rastreo de pedidos de Envíopack</p>';
 }
 
 function create_menu_option()

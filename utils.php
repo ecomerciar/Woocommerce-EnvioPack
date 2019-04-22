@@ -377,14 +377,22 @@ function create_shortcode()
         $ep = new Enviopack;
         $ep_id = filter_var($_GET['enviopack_form_id'], FILTER_SANITIZE_SPECIAL_CHARS);
         $tracking_statuses = $ep->get_tracking_statuses($ep_id);
-        if (!empty($tracking_statuses)) {
+        if (is_array($tracking_statuses)) {
+            $tracking_statuses = $tracking_statuses[0];
             $content .= '<h3 class="enviopack-tracking-results-number">Envío Nro: ' . $ep_id . '</h3>';
+            if (isset($tracking_statuses['correo']['nombre']) && !empty($tracking_statuses['correo']['nombre']))
+                $content .= '<h4>Correo: ' . $tracking_statuses['correo']['nombre'] . '</h4>';
+            if (isset($tracking_statuses['modalidad']) && ($tracking_statuses['modalidad'] === 'S' || $tracking_statuses['modalidad'] === 'D')) {
+                if ($tracking_statuses['modalidad'] === 'S') $modality = 'Sucursal';
+                if ($tracking_statuses['modalidad'] === 'D') $modality = 'Domicilio';
+                $content .= '<h4>Servicio a ' . $modality . '</h4>';
+            }
             $content .= '<table class="enviopack-tracking-results-table">';
             $content .= "<tr>";
-            $content .= "<th width=\"30%\">Fecha</th>";
-            $content .= "<th width=\"70%\">Estado actual</th>";
+            $content .= "<th width=\"30%\" style=\"background-color: #f83885;color: #fff;\">Fecha</th>";
+            $content .= "<th width=\"70%\" style=\"background-color: #f83885;color: #fff;\">Estado actual</th>";
             $content .= "</tr>";
-            foreach ($tracking_statuses as $tracking_status) {
+            foreach ($tracking_statuses['tracking'] as $tracking_status) {
                 $content .= "<tr>";
                 $content .= "<td>" . $tracking_status['fecha'] . "</td>";
                 $content .= "<td>" . $tracking_status['mensaje'] . "</td>";
@@ -392,10 +400,14 @@ function create_shortcode()
             }
             $content .= "</table>";
         } else {
-            $content .= '<h3  class="enviopack-tracking-error">Hubo un error, por favor intenta nuevamente</h3>';
+            if ($tracking_statuses === 404) {
+                $content .= '<h3  class="enviopack-tracking-error">No existe un envío con el nº de tracking informado</h3>';
+            } else {
+                $content .= '<h3  class="enviopack-tracking-error">Hubo un error, por favor intenta nuevamente</h3>';
+            }
         }
     }
-	return $content;
+    return $content;
 }
 
 function create_settings_link($links)

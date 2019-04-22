@@ -508,7 +508,7 @@ class Enviopack
         if (!$tracking_id) {
             return false;
         }
-        $response = $this->call_api('GET', '/envios/' . $tracking_id . '/tracking', array('access_token' => $this->get_access_token()));
+        $response = $this->call_api('GET', '/tracking', array('tracking_number' => $tracking_id));
         if (is_wp_error($response)) {
             $this->logger->error('Enviopack -> WP Error al obtener etiquetas: ' . $response->get_error_message(), unserialize(LOGGER_CONTEXT));
             return false;
@@ -517,10 +517,13 @@ class Enviopack
             $response = json_decode($response['body'], true);
             return $response;
         } else {
-            $this->logger->error('Enviopack -> Etiquetas - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
+            $response_code = $response['response']['code'];
+            if ($response_code !== 404)
+                $this->logger->error('Enviopack -> Tracking - Error del servidor codigo: ' . (isset($response['response']['code']) ? $response['response']['code'] : 'Sin codigo'), unserialize(LOGGER_CONTEXT));
             $response = json_decode($response['body'], true);
-            $this->logger->error('Enviopack -> Etiquetas - Error del servidor mensaje: ' . (isset($response['message']) && isset($response['errors']['global'][0])) ? $response['message'] . ': ' . $response['errors']['global'][0] : 'Sin mensaje', unserialize(LOGGER_CONTEXT));
-            return false;
+            $this->logger->error('Enviopack -> Tracking - Error del servidor para tracking: ' . $tracking_id . ' | ' . $response['message'], unserialize(LOGGER_CONTEXT));
+            if ($response_code !== 404) $response_code = false;
+            return $response_code;
         }
     }
 
