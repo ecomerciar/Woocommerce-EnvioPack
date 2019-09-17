@@ -412,7 +412,7 @@ function create_shortcode()
 
 function create_settings_link($links)
 {
-    $links[] = '<a href="' . esc_url(get_admin_url(null, 'options-general.php?page=enviopack_settings')) . '">Settings</a>';
+    $links[] = '<a href="' . esc_url(get_admin_url(null, 'options-general.php?page=enviopack_settings')) . '">Ajustes</a>';
     return $links;
 }
 
